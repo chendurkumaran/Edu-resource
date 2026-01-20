@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import { 
+import {
   DocumentTextIcon,
   ClockIcon,
   PaperClipIcon,
@@ -63,9 +63,43 @@ const AssignmentDetail = () => {
     }
   };
 
+  const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', 'document');
+    formData.append('context', 'assignment-student');
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      return {
+        originalName: response.data.originalName,
+        filename: response.data.filename,
+        path: response.data.filePath,
+        mimetype: response.data.mimetype
+      };
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error(`Failed to upload ${file.name}`);
+      throw error;
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
+
+    // Initial file selection update (we don't upload yet to avoid junk if they cancel)
+    // But backend requires file path for submission object?
+    // Wait, typical flow: user selects -> we upload -> we store URLs -> we submit URLs.
+    // Or: user selects -> we store Files -> on Submit, we upload -> then submit URLs. 
+    // Let's do the latter for cleaner UX if submission fails.
+
     setSubmissionForm(prev => ({
       ...prev,
       attachments: files
@@ -78,15 +112,25 @@ const AssignmentDetail = () => {
 
     try {
       if (!id) return;
-      console.log('Submitting assignment with id:', id);
+
+      let uploadedAttachments: any[] = [];
+      if (submissionForm.attachments.length > 0) {
+        // Filter out files that are already uploaded (if we support editing drafts later, but here they are File objects)
+        // Assuming current attachments in state are File[]
+        uploadedAttachments = await Promise.all(
+          submissionForm.attachments.map(file => uploadFile(file))
+        );
+      }
+
       await axios.post('/api/submissions', {
         assignmentId: id,
-        submissionText: submissionForm.submissionText
+        submissionText: submissionForm.submissionText,
+        attachments: uploadedAttachments
       });
 
       toast.success('Assignment submitted successfully!');
       fetchSubmission(); // Refresh submission data
-    } catch (error:any) {
+    } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to submit assignment');
     } finally {
       setSubmissionLoading(false);
@@ -94,14 +138,14 @@ const AssignmentDetail = () => {
   };
 
   const isOverdue = assignment?.dueDate && isValidDate(assignment.dueDate) ? new Date() > new Date(assignment.dueDate) : false;
-  const canSubmit = user?.role === 'student' && !submission && 
+  const canSubmit = user?.role === 'student' && !submission &&
     (assignment?.allowLateSubmission || !isOverdue);
 
   const formatDueDate = (dueDate: string) => {
     if (!dueDate) return 'No due date set';
-    
+
     if (!isValidDate(dueDate)) return 'Invalid date';
-    
+
     return formatDateLong(dueDate);
   };
 
@@ -133,7 +177,7 @@ const AssignmentDetail = () => {
               <p className="text-gray-600">{assignment.course?.title} • {assignment.course?.courseCode}</p>
             </div>
           </div>
-          
+
           {submission ? (
             <div className="flex items-center text-green-600">
               <CheckCircleIcon className="h-6 w-6 mr-2" />
@@ -210,177 +254,213 @@ const AssignmentDetail = () => {
         )}
       </div>
 
+      {/* Answer/Solution File */}
+      {assignment.solution && (
+        (user?.role === 'instructor' || user?.role === 'admin') ||
+        (assignment.isSolutionVisible)
+      ) && (
+          <div className="card mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <CheckCircleIcon className="w-6 h-6 text-green-600" />
+              Solution Key
+              {user?.role === 'instructor' && !assignment.isSolutionVisible && (
+                <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                  Hidden from Students
+                </span>
+              )}
+            </h3>
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-100">
+              <div className="flex items-center">
+                <DocumentTextIcon className="h-6 w-6 text-green-600 mr-3" />
+                <div>
+                  <p className="text-gray-900 font-medium">{assignment.solution.originalName}</p>
+                  <p className="text-xs text-green-700 mt-0.5">Official Answer Key</p>
+                </div>
+              </div>
+              <a
+                href={`/api${assignment.solution.path}`}
+                download
+                target="_blank"
+                rel="noreferrer"
+                className="btn bg-white border border-green-200 text-green-700 hover:bg-green-100 btn-sm"
+              >
+                Download Solution
+              </a>
+            </div>
+          </div>
+        )}
+
+
       {/* Submission Section */}
-      {user?.role === 'student' && (
-        <>
-          {submission ? (
-            /* Existing Submission */
-            <div className="card">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Submission</h2>
-              
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-600">Submitted:</span>
-                    <p>{formatDateTime(submission.submittedAt)}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-600">Status:</span>
-                    <p className={`font-medium ${
-                      submission.status === 'submitted' ? 'text-blue-600' : 'text-gray-600'
+      {
+        user?.role === 'student' && (
+          <>
+            {submission ? (
+              /* Existing Submission */
+              <div className="card">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Submission</h2>
 
-                    }`}>
-                      {submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
-                    </p>
-                  </div>
-
-                </div>
-
-                {submission.submissionText && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Text Submission</h4>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="whitespace-pre-wrap">{submission.submissionText}</p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-600">Submitted:</span>
+                      <p>{formatDateTime(submission.submittedAt)}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Status:</span>
+                      <p className={`font-medium ${submission.status === 'submitted' ? 'text-blue-600' : 'text-gray-600'
+                        }`}>
+                        {submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
+                      </p>
                     </div>
                   </div>
-                )}
 
-                {(submission.attachments?.length ?? 0) > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Submitted Files</h4>
-                    <div className="space-y-2">
-                      {submission.attachments?.map((attachment, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center">
-                            <PaperClipIcon className="h-5 w-5 text-gray-400 mr-3" />
-                            <span>{attachment.originalName}</span>
+                  {submission.submissionText && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Text Submission</h4>
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <p className="whitespace-pre-wrap">{submission.submissionText}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {(submission.attachments?.length ?? 0) > 0 && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Submitted Files</h4>
+                      <div className="space-y-2">
+                        {submission.attachments?.map((attachment, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center">
+                              <PaperClipIcon className="h-5 w-5 text-gray-400 mr-3" />
+                              <span>{attachment.originalName}</span>
+                            </div>
+                            <a
+                              href={`/api${attachment.path}`}
+                              download
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Download
+                            </a>
                           </div>
-                          <a
-                            href={`/api${attachment.path}`}
-                            download
-                            className="btn btn-secondary btn-sm"
-                          >
-                            Download
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {submission.feedback && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Instructor Feedback</h4>
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <p className="whitespace-pre-wrap">{submission.feedback}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : canSubmit ? (
-            /* Submission Form */
-            <div className="card">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Submit Assignment</h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {assignment.submissionType !== 'file' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Text Submission
-                    </label>
-                    <textarea
-                      rows={6}
-                      value={submissionForm.submissionText}
-                      onChange={(e) => setSubmissionForm(prev => ({ ...prev, submissionText: e.target.value }))}
-                      className="input"
-                      placeholder="Enter your submission text here..."
-                      required={assignment.submissionType === 'text'}
-                    />
-                  </div>
-                )}
-
-                {assignment.submissionType !== 'text' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      File Attachments
-                    </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                      <div className="text-center">
-                        <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <input
-                          type="file"
-                          multiple
-                          onChange={handleFileChange}
-                          className="hidden"
-                          id="file-upload"
-                          accept={assignment.allowedFileTypes?.map(type => `.${type}`).join(',')}
-                        />
-                        <label htmlFor="file-upload" className="btn btn-secondary cursor-pointer">
-                          Choose Files
-                        </label>
-                        <p className="text-sm text-gray-600 mt-2">
-                          Allowed types: {assignment.allowedFileTypes?.join(', ')}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Max size: {Math.round(assignment.maxFileSize / 1024 / 1024)}MB per file
-                        </p>
+                        ))}
                       </div>
                     </div>
-                    
-                    {submissionForm.attachments.length > 0 && (
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Files:</h4>
-                        <ul className="space-y-1">
-                          {submissionForm.attachments.map((file, index) => (
-                            <li key={index} className="text-sm text-gray-600">
-                              {file.name} ({Math.round(file.size / 1024)}KB)
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/assignments')}
-                    className="btn btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submissionLoading}
-                    className="btn btn-primary disabled:opacity-50"
-                  >
-                    {submissionLoading ? 'Submitting...' : 'Submit Assignment'}
-                  </button>
+                  {submission.feedback && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Instructor Feedback</h4>
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <p className="whitespace-pre-wrap">{submission.feedback}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </form>
-            </div>
-          ) : (
-            /* Cannot Submit */
-            <div className="card">
-              <div className="text-center py-8">
-                <ExclamationTriangleIcon className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {isOverdue ? 'Assignment Overdue' : 'Submission Closed'}
-                </h3>
-                <p className="text-gray-600">
-                  {isOverdue 
-                    ? 'This assignment is past the due date and late submissions are not allowed.'
-                    : 'The submission period for this assignment has ended.'
-                  }
-                </p>
               </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
+            ) : canSubmit ? (
+              /* Submission Form */
+              <div className="card">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Submit Assignment</h2>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {assignment.submissionType !== 'file' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Text Submission
+                      </label>
+                      <textarea
+                        rows={6}
+                        value={submissionForm.submissionText}
+                        onChange={(e) => setSubmissionForm(prev => ({ ...prev, submissionText: e.target.value }))}
+                        className="input"
+                        placeholder="Enter your submission text here..."
+                        required={assignment.submissionType === 'text'}
+                      />
+                    </div>
+                  )}
+
+                  {assignment.submissionType !== 'text' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        File Attachments
+                      </label>
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                        <div className="text-center">
+                          <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <input
+                            type="file"
+                            multiple
+                            onChange={handleFileChange}
+                            className="hidden"
+                            id="file-upload"
+                            accept={assignment.allowedFileTypes?.map(type => `.${type}`).join(',')}
+                          />
+                          <label htmlFor="file-upload" className="btn btn-secondary cursor-pointer">
+                            Choose Files
+                          </label>
+                          <p className="text-sm text-gray-600 mt-2">
+                            Allowed types: {assignment.allowedFileTypes?.join(', ')}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Max size: {Math.round(assignment.maxFileSize / 1024 / 1024)}MB per file
+                          </p>
+                        </div>
+                      </div>
+
+                      {submissionForm.attachments.length > 0 && (
+                        <div className="mt-4">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Files:</h4>
+                          <ul className="space-y-1">
+                            {submissionForm.attachments.map((file, index) => (
+                              <li key={index} className="text-sm text-gray-600">
+                                {file.name} ({Math.round(file.size / 1024)}KB)
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/assignments')}
+                      className="btn btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submissionLoading}
+                      className="btn btn-primary disabled:opacity-50"
+                    >
+                      {submissionLoading ? 'Submitting...' : 'Submit Assignment'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              /* Cannot Submit */
+              <div className="card">
+                <div className="text-center py-8">
+                  <ExclamationTriangleIcon className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {isOverdue ? 'Assignment Overdue' : 'Submission Closed'}
+                  </h3>
+                  <p className="text-gray-600">
+                    {isOverdue
+                      ? 'This assignment is past the due date and late submissions are not allowed.'
+                      : 'The submission period for this assignment has ended.'
+                    }
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        )
+      }
+    </div >
   );
 };
 

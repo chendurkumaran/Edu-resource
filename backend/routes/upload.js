@@ -24,12 +24,22 @@ uploadDirs.forEach(dir => {
 const materialStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         const type = req.body.type || 'course-material';
+        const context = req.body.context;
         let uploadPath = 'uploads/course-materials';
 
-        if (type === 'video') {
+        if (context === 'assignment-admin') {
+            uploadPath = 'uploads/admin/assignments';
+        } else if (context === 'assignment-student') {
+            uploadPath = 'uploads/students/assignments';
+        } else if (type === 'video') {
             uploadPath = 'uploads/videos';
         } else if (type === 'document' || type === 'pdf' || type === 'note') {
             uploadPath = 'uploads/documents';
+        }
+
+        // Ensure directory exists
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
         }
 
         cb(null, uploadPath);
@@ -37,7 +47,7 @@ const materialStorage = multer.diskStorage({
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname);
-        cb(null, `material-${uniqueSuffix}${ext}`);
+        cb(null, `upload-${uniqueSuffix}${ext}`);
     }
 });
 

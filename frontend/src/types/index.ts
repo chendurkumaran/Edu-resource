@@ -150,6 +150,8 @@ export interface Assignment {
   latePenalty?: number;
   rubric?: RubricItem[];
   attachments?: Attachment[];
+  solution?: Attachment;
+  isSolutionVisible?: boolean;
   enrollmentCount?: number;
   isSubmitted?: boolean;
 }
@@ -162,7 +164,7 @@ export interface Submission {
   student: User;
   submissionText?: string;
   attachments?: Attachment[];
-  status: 'submitted' | 'late';
+  status: 'submitted' | 'late' | 'graded';
   submittedAt: string;
   isLate: boolean;
   feedback?: string;

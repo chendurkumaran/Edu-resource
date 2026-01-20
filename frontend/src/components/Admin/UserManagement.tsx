@@ -135,7 +135,6 @@ const UserManagement = () => {
             <option value="">All Roles</option>
             <option value="student">Students</option>
             <option value="instructor">Instructors</option>
-            <option value="admin">Administrators</option>
           </select>
           <button
             onClick={() => setSelectedRole('')}

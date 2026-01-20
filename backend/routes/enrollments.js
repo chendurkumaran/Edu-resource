@@ -85,13 +85,42 @@ router.post('/', [
     }
 
     // Check if already enrolled
-    const existingEnrollment = await Enrollment.findOne({
+    let enrollment = await Enrollment.findOne({
       student: req.user._id,
       course: courseId
     });
 
-    if (existingEnrollment) {
-      return res.status(400).json({ message: 'Already enrolled in this course' });
+    if (enrollment) {
+      if (enrollment.status === 'enrolled' || enrollment.status === 'active') { // 'active' might not be in enum but strict check 'enrolled' is main one
+        return res.status(400).json({ message: 'Already enrolled in this course' });
+      }
+
+      // If status is dropped, reactivate
+      if (enrollment.status === 'dropped') {
+        // Check course capacity again
+        if (course.currentEnrollment >= course.maxStudents) {
+          return res.status(400).json({ message: 'Course is full' });
+        }
+
+        enrollment.status = 'enrolled';
+        enrollment.enrollmentDate = Date.now();
+        await enrollment.save();
+
+        // Update course enrollment count
+        await Course.findByIdAndUpdate(courseId, {
+          $inc: { currentEnrollment: 1 }
+        });
+
+        await enrollment.populate([
+          { path: 'student', select: 'firstName lastName email' },
+          { path: 'course', select: 'title courseCode instructor' }
+        ]);
+
+        return res.status(200).json({
+          message: 'Re-enrolled successfully',
+          enrollment
+        });
+      }
     }
 
     // Check course capacity
@@ -99,8 +128,8 @@ router.post('/', [
       return res.status(400).json({ message: 'Course is full' });
     }
 
-    // Create enrollment
-    const enrollment = new Enrollment({
+    // Create new enrollment if none exists
+    enrollment = new Enrollment({
       student: req.user._id,
       course: courseId
     });

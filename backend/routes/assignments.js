@@ -56,6 +56,27 @@ router.get('/', auth, async (req, res) => {
         .sort({ dueDate: 1 });
     }
 
+    if (req.user.role === 'student' && assignments.length > 0) {
+      const Submission = require('../models/Submission');
+      const assignmentIds = assignments.map(a => a._id);
+      
+      const submissions = await Submission.find({
+        student: req.user._id,
+        assignment: { $in: assignmentIds }
+      });
+
+      const submittedAssignmentIds = new Set(submissions.map(s => s.assignment.toString()));
+
+      assignments = assignments.map(assignment => ({
+        ...assignment.toObject(),
+        isSubmitted: submittedAssignmentIds.has(assignment._id.toString())
+      }));
+    } else if (req.user.role === 'student') {
+        // Ensure toObject() is called if no assignments found/submission logic skipped? 
+        // Actually if length is 0, map is empty. Safe.
+        // But if logic skipped (failed check), we just return assignments as is.
+    }
+
     res.json(assignments);
   } catch (error) {
     console.error('Get assignments error:', error);
@@ -125,7 +146,7 @@ router.post('/', [
       });
     }
 
-    const { title, description, courseId, type, totalPoints, dueDate, isPublished, allowLateSubmission, latePenalty } = req.body;
+    const { title, description, courseId, type, totalPoints, dueDate, isPublished, allowLateSubmission, latePenalty, attachments, solution, isSolutionVisible } = req.body;
 
     // Verify course exists and instructor owns it
     const course = await Course.findById(courseId);
@@ -155,7 +176,10 @@ router.post('/', [
       dueDate: parsedDueDate,
       isPublished: isPublished || false,
       allowLateSubmission: allowLateSubmission !== undefined ? allowLateSubmission : true,
-      latePenalty: latePenalty || 0
+      latePenalty: latePenalty || 0,
+      attachments: attachments || [],
+      solution: solution || null,
+      isSolutionVisible: isSolutionVisible || false
     });
 
     await assignment.save();
@@ -223,12 +247,29 @@ router.post('/', [
 // @access  Private
 router.get('/course/:courseId', auth, async (req, res) => {
   try {
-    const assignments = await Assignment.find({
+    let assignments = await Assignment.find({
       course: req.params.courseId,
       isPublished: true
     })
     .populate('instructor', 'firstName lastName')
     .sort({ dueDate: 1 });
+
+    if (req.user.role === 'student' && assignments.length > 0) {
+      const Submission = require('../models/Submission');
+      const assignmentIds = assignments.map(a => a._id);
+      
+      const submissions = await Submission.find({
+        student: req.user._id,
+        assignment: { $in: assignmentIds }
+      });
+
+      const submittedAssignmentIds = new Set(submissions.map(s => s.assignment.toString()));
+
+      assignments = assignments.map(assignment => ({
+        ...assignment.toObject(),
+        isSubmitted: submittedAssignmentIds.has(assignment._id.toString())
+      }));
+    }
 
     res.json(assignments);
   } catch (error) {

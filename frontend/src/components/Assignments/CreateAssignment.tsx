@@ -11,7 +11,7 @@ const CreateAssignment = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [attachments, setAttachments] = useState<File[]>([]);
+
   interface FormData {
     title: string;
     description: string;
@@ -27,6 +27,9 @@ const CreateAssignment = () => {
     allowLateSubmission: boolean;
     latePenalty: number;
     rubric: RubricItem[];
+    attachments: { originalName: string; path: string; mimetype: string }[];
+    solution: { originalName: string; path: string; mimetype: string } | null;
+    isSolutionVisible: boolean;
   }
 
   const [formData, setFormData] = useState<FormData>({
@@ -43,7 +46,10 @@ const CreateAssignment = () => {
     isPublished: false,
     allowLateSubmission: true,
     latePenalty: 10,
-    rubric: []
+    rubric: [],
+    attachments: [],
+    solution: null,
+    isSolutionVisible: false
   });
 
   useEffect(() => {
@@ -66,7 +72,7 @@ const CreateAssignment = () => {
     const { name, value, type } = e.target;
     // Handle checkbox separately since HTMLSelectElement/HTMLTextAreaElement don't have 'checked'
     const checked = (e.target as HTMLInputElement).checked;
-    
+
     if (name === 'dueDate') {
       // Store the datetime-local value directly (YYYY-MM-DDTHH:mm format)
       setFormData(prev => ({
@@ -76,8 +82,8 @@ const CreateAssignment = () => {
     } else {
       setFormData(prev => ({
         ...prev,
-        [name]: type === 'checkbox' ? checked : 
-                 type === 'number' ? parseInt(value) || 0 : value
+        [name]: type === 'checkbox' ? checked :
+          type === 'number' ? parseInt(value) || 0 : value
       }));
     }
   };
@@ -85,15 +91,93 @@ const CreateAssignment = () => {
   const handleFileTypeChange = (fileType: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      allowedFileTypes: checked 
+      allowedFileTypes: checked
         ? [...prev.allowedFileTypes, fileType]
         : prev.allowedFileTypes.filter(type => type !== fileType)
     }));
   };
 
-  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadFile = async (file: File, context: 'assignment-admin' | 'assignment-student') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', 'document'); // Default to document type
+    formData.append('context', context);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      return {
+        originalName: response.data.originalName,
+        filename: response.data.filename,
+        path: response.data.filePath,
+        mimetype: response.data.mimetype
+      };
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error(`Failed to upload ${file.name}`);
+      throw error;
+    }
+  };
+
+  const handleAssignmentFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    setAttachments(Array.from(e.target.files));
+    const files = Array.from(e.target.files);
+
+    setLoading(true); // Reuse loading state or add specific one
+    try {
+      // Upload files immediately
+      const uploadedAttachments = await Promise.all(
+        files.map(file => uploadFile(file, 'assignment-admin'))
+      );
+
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), ...uploadedAttachments]
+      }));
+      toast.success('Files uploaded successfully');
+    } catch (error) {
+      // Error handled in uploadFile
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSolutionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+
+    setLoading(true);
+    try {
+      const uploadedSolution = await uploadFile(file, 'assignment-admin');
+      setFormData(prev => ({
+        ...prev,
+        solution: uploadedSolution
+      }));
+      toast.success('Solution uploaded successfully');
+    } catch (error) {
+      // Error handled
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index)
+    }));
+  };
+
+  const removeSolution = () => {
+    setFormData(prev => ({
+      ...prev,
+      solution: null
+    }));
   };
 
   const addRubricCriteria = () => {
@@ -113,7 +197,7 @@ const CreateAssignment = () => {
   const updateRubricCriteria = (index: number, field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      rubric: prev.rubric.map((item, i) => 
+      rubric: prev.rubric.map((item, i) =>
         i === index ? { ...item, [field]: field === 'points' ? parseInt(value) || 0 : value } : item
       )
     }));
@@ -143,7 +227,10 @@ const CreateAssignment = () => {
         ...formData,
         dueDate: dueDate.toISOString(), // Convert to ISO string
         allowedFileTypes: formData.allowedFileTypes,
-        rubric: formData.rubric
+        rubric: formData.rubric,
+        attachments: formData.attachments,
+        solution: formData.solution,
+        isSolutionVisible: formData.isSolutionVisible
       };
 
       const response = await axios.post('/api/assignments', payload, {
@@ -193,7 +280,7 @@ const CreateAssignment = () => {
         {/* Basic Information */}
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -316,7 +403,7 @@ const CreateAssignment = () => {
         {/* Submission Settings */}
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Submission Settings</h2>
-          
+
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -365,9 +452,9 @@ const CreateAssignment = () => {
                     min="1"
                     max="100"
                     value={Math.round(formData.maxFileSize / 1024 / 1024)}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      maxFileSize: parseInt(e.target.value) * 1024 * 1024 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      maxFileSize: parseInt(e.target.value) * 1024 * 1024
                     }))}
                     className="input"
                   />
@@ -421,39 +508,110 @@ const CreateAssignment = () => {
 
         {/* Assignment Files */}
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Assignment Files</h2>
-          
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-            <div className="text-center">
-              <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <input
-                type="file"
-                multiple
-                onChange={handleAttachmentChange}
-                className="hidden"
-                id="assignment-files"
-              />
-              <label htmlFor="assignment-files" className="btn btn-secondary cursor-pointer">
-                Choose Files
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Assignment Files & Solution</h2>
+
+          <div className="space-y-6">
+            {/* Assignment Files Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assignment Materials
               </label>
-              <p className="text-sm text-gray-600 mt-2">
-                Upload reference materials, templates, or instructions
-              </p>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <div className="text-center">
+                  <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleAssignmentFileChange}
+                    className="hidden"
+                    id="assignment-files"
+                  />
+                  <label htmlFor="assignment-files" className="btn btn-secondary cursor-pointer">
+                    Choose Files
+                  </label>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Upload reference materials, templates, or instructions
+                  </p>
+                </div>
+              </div>
+
+              {formData.attachments.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Uploaded Files:</h4>
+                  <ul className="space-y-2">
+                    {formData.attachments.map((file, index) => (
+                      <li key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                        <span className="text-sm text-gray-600">{file.originalName}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(index)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Answer/Solution File Upload */}
+            <div className="pt-4 border-t border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Answer/Solution Key
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <div className="text-center">
+                  <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <input
+                    type="file"
+                    onChange={handleSolutionFileChange}
+                    className="hidden"
+                    id="solution-file"
+                  />
+                  <label htmlFor="solution-file" className="btn btn-secondary cursor-pointer">
+                    Choose Solution File
+                  </label>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Upload the answer key or solution PDF
+                  </p>
+                </div>
+              </div>
+
+              {formData.solution && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Solution File:</h4>
+                  <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <span className="text-sm text-blue-800">{formData.solution.originalName}</span>
+                    <button
+                      type="button"
+                      onClick={removeSolution}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isSolutionVisible"
+                    checked={formData.isSolutionVisible}
+                    onChange={handleChange}
+                    className="rounded border-gray-300 text-primary-600"
+                  />
+                  <span className="ml-2 text-sm">Make solution visible to students immediately</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  If unchecked, you can enable this later after the due date.
+                </p>
+              </div>
             </div>
           </div>
-          
-          {attachments.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Files:</h4>
-              <ul className="space-y-1">
-                {attachments.map((file, index) => (
-                  <li key={index} className="text-sm text-gray-600">
-                    {file.name} ({Math.round(file.size / 1024)}KB)
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
 
         {/* Rubric */}
@@ -469,7 +627,7 @@ const CreateAssignment = () => {
               Add Criteria
             </button>
           </div>
-          
+
           {formData.rubric.length === 0 ? (
             <p className="text-gray-500 text-center py-4">
               No rubric criteria added. Click "Add Criteria" to get started.

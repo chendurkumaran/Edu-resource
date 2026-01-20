@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import { 
+import {
   DocumentTextIcon,
   PlusIcon,
   ClockIcon,
@@ -39,7 +39,7 @@ const AssignmentList = () => {
     try {
       setLoading(true);
       let url = '/api/assignments';
-      
+
       if (selectedCourse) {
         url = `/api/assignments/course/${selectedCourse}`;
       }
@@ -75,9 +75,9 @@ const AssignmentList = () => {
 
   const formatDueDate = (dueDate: string) => {
     if (!dueDate) return 'No due date';
-    
+
     if (!isValidDate(dueDate)) return 'Invalid date';
-    
+
     return formatDateTime(dueDate);
   };
 
@@ -87,16 +87,21 @@ const AssignmentList = () => {
 
   const getStatusIcon = (assignment: Assignment) => {
     if (!assignment.dueDate) return <ClockIcon className="h-5 w-5 text-gray-500" />;
-    
+
     const dueDate = new Date(assignment.dueDate);
     if (isNaN(dueDate.getTime())) return <ClockIcon className="h-5 w-5 text-gray-500" />;
-    
+
     const now = new Date();
-    
+
     if (assignment.isSubmitted) {
       return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
     } else if (dueDate < now) {
-      return <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />;
+      if (user?.role === 'student') {
+        return <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />;
+      } else {
+        // Admin/Instructor: Completed
+        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+      }
     } else {
       return <ClockIcon className="h-5 w-5 text-yellow-500" />;
     }
@@ -105,11 +110,15 @@ const AssignmentList = () => {
   const getStatusText = (assignment: Assignment) => {
     const dueDate = new Date(assignment.dueDate);
     const now = new Date();
-    
+
     if (assignment.isSubmitted) {
       return 'Submitted';
     } else if (dueDate < now) {
-      return 'Overdue';
+      if (user?.role === 'student') {
+        return 'Overdue';
+      } else {
+        return 'Completed';
+      }
     } else {
       return 'Pending';
     }
@@ -118,11 +127,15 @@ const AssignmentList = () => {
   const getStatusColor = (assignment: Assignment) => {
     const dueDate = new Date(assignment.dueDate);
     const now = new Date();
-    
+
     if (assignment.isSubmitted) {
       return 'text-green-600';
     } else if (dueDate < now) {
-      return 'text-red-600';
+      if (user?.role === 'student') {
+        return 'text-red-600';
+      } else {
+        return 'text-green-600';
+      }
     } else {
       return 'text-yellow-600';
     }
@@ -139,13 +152,13 @@ const AssignmentList = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
           <p className="mt-2 text-gray-600">
-            {user?.role === 'student' 
+            {user?.role === 'student'
               ? 'View and submit your assignments'
               : 'Manage course assignments and submissions'
             }
           </p>
         </div>
-        
+
         {user?.role === 'instructor' && ( // Removed admin from create assignment button
           <Link
             to="/create-assignment"
@@ -217,7 +230,7 @@ const AssignmentList = () => {
           <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No assignments found</h3>
           <p className="text-gray-600">
-            {user?.role === 'student' 
+            {user?.role === 'student'
               ? 'No assignments available for your enrolled courses'
               : 'Create your first assignment to get started'
             }
@@ -272,7 +285,7 @@ const AssignmentList = () => {
                   >
                     View Details
                   </Link>
-                  
+
                   {user?.role === 'instructor' && assignment.instructor === user._id && (
                     <Link
                       to={`/assignments/${assignment._id}/submissions`}

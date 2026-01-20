@@ -59,6 +59,32 @@ const assignmentSchema = new mongoose.Schema({
     min: 0,
     max: 100,
     default: 0
+  },
+  attachments: [{
+    originalName: String,
+    filename: String,
+    path: String,
+    mimetype: String,
+    size: Number,
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  solution: {
+    originalName: String,
+    filename: String,
+    path: String,
+    mimetype: String,
+    size: Number,
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    }
+  },
+  isSolutionVisible: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

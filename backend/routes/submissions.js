@@ -42,7 +42,7 @@ const router = express.Router();
 // @access  Private (Student only)
 router.post('/', [auth, authorize('student')], async (req, res) => {
   try {
-    const { assignmentId, submissionText } = req.body;
+    const { assignmentId, submissionText, attachments } = req.body;
 
     const assignment = await Assignment.findById(assignmentId);
     if (!assignment) {
@@ -66,6 +66,7 @@ router.post('/', [auth, authorize('student')], async (req, res) => {
       assignment: assignmentId,
       student: req.user._id,
       submissionText,
+      attachments: attachments || [],
       isLate
     });
 
@@ -232,10 +233,14 @@ router.get('/assignment/:assignmentId', [auth, authorize('instructor', 'admin')]
     }
 
     const submissions = await Submission.find({ assignment: req.params.assignmentId })
-      .populate('student', 'firstName lastName email')
+      .populate('student', 'firstName lastName email profileImage')
       .sort({ submittedAt: -1 });
 
-    res.json(submissions);
+    res.json({
+      assignment,
+      submissions,
+      totalSubmissions: submissions.length
+    });
   } catch (error) {
     console.error('Get submissions error:', error);
     res.status(500).json({ message: 'Server error while fetching submissions' });
