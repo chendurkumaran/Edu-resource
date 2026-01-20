@@ -128,7 +128,7 @@ const CourseDetail = () => {
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-4 mb-4">
-              <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <BookOpenIcon className="h-8 w-8 text-white" />
               </div>
               <div>
@@ -163,7 +163,7 @@ const CourseDetail = () => {
             {canEdit && (
               <>
                 <button
-                  onClick={() => navigate(`/courses/${id}/edit`)}
+                  onClick={() => navigate(`/courses/edit/${id}`)}
                   className="btn btn-secondary flex items-center justify-center"
                 >
                   <PencilIcon className="h-5 w-5 mr-2" />
@@ -238,9 +238,8 @@ const CourseDetail = () => {
         materials={course.materials || []}
         modules={course.modules || []}
         isEnrolled={isEnrolled}
-        canEdit={canEdit}
-        onEnroll={handleEnroll}
-        enrollmentLoading={enrollmentLoading}
+        canEdit={!!canEdit}
+        courseId={course._id || id || ''}
       />
 
       {/* Prerequisites */}

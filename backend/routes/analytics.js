@@ -7,6 +7,35 @@ const { auth, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Analytics
+ *   description: Analytics and Statistics API
+ */
+
+/**
+ * @swagger
+ * /api/analytics/dashboard:
+ *   get:
+ *     summary: Get dashboard analytics
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalUsers: { type: integer }
+ *                 totalCourses: { type: integer }
+ *                 totalEnrollments: { type: integer }
+ *       403:
+ *         description: Unauthorized
+ */
 // @route   GET /api/analytics/dashboard
 // @desc    Get dashboard analytics
 // @access  Private (Admin/Instructor)
@@ -84,6 +113,16 @@ router.get('/dashboard', [auth, authorize('admin', 'instructor')], async (req, r
   }
 });
 
+/**
+ * @swagger
+ * /api/analytics/public:
+ *   get:
+ *     summary: Get public platform statistics
+ *     tags: [Analytics]
+ *     responses:
+ *       200:
+ *         description: Public statistics
+ */
 // @route   GET /api/analytics/public
 // @desc    Get public platform statistics for homepage
 // @access  Public

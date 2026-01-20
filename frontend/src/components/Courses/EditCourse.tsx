@@ -20,7 +20,7 @@ interface CourseFormData {
   credits: number;
   maxStudents: number;
   category: string;
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  level: '1st Year' | '2nd Year' | '3rd Year' | '4th Year';
   prerequisites: string[];
   isActive: boolean;
   materials: CourseMaterial[];
@@ -40,7 +40,7 @@ const EditCourse = () => {
     maxStudents: 30,
     // fees removed
     category: '',
-    level: 'Beginner',
+    level: '1st Year',
     prerequisites: [''],
     isActive: true,
     materials: [],
@@ -308,9 +308,10 @@ const EditCourse = () => {
                 onChange={handleChange}
                 className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
               >
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
               </select>
             </div>
 
@@ -461,152 +462,7 @@ const EditCourse = () => {
         </div>
 
         {/* Course Materials */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Course Materials</h2>
-            <button
-              type="button"
-              onClick={addMaterial}
-              className="btn btn-secondary btn-sm flex items-center"
-            >
-              <PlusIcon className="h-4 w-4 mr-1" />
-              Add Material
-            </button>
-          </div>
 
-          <div className="space-y-6">
-            {formData.materials.map((material, index) => (
-              <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-md font-medium text-gray-900 dark:text-white">Material {index + 1}</h3>
-                  <button
-                    type="button"
-                    onClick={() => removeMaterial(index)}
-                    className="btn btn-danger btn-sm"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Title */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={material.title}
-                      onChange={(e) => updateMaterial(index, 'title', e.target.value)}
-                      className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                      placeholder="Material title"
-                      required
-                    />
-                  </div>
-
-                  {/* Type */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Type *
-                    </label>
-                    <select
-                      value={material.type}
-                      onChange={(e) => updateMaterial(index, 'type', e.target.value)}
-                      className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                    >
-                      <option value="document">Document/PDF</option>
-                      <option value="video">Video</option>
-                      <option value="note">Study Notes</option>
-                      <option value="link">External Link</option>
-                    </select>
-                  </div>
-
-                  {/* Description */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      value={material.description || ''}
-                      onChange={(e) => updateMaterial(index, 'description', e.target.value)}
-                      className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                      rows={2}
-                      placeholder="Brief description of the material"
-                    />
-                  </div>
-
-                  {/* File Upload / URL */}
-                  {material.type === 'link' ? (
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={material.url}
-                        onChange={(e) => updateMaterial(index, 'url', e.target.value)}
-                        className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                        placeholder="https://example.com"
-                        required
-                      />
-                    </div>
-                  ) : (
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Upload File *
-                      </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
-                        <div className="space-y-1 text-center">
-                          <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
-                          <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                            <label className="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                              <span>Upload a file</span>
-                              <input
-                                type="file"
-                                className="sr-only"
-                                accept={material.type === 'video' ? 'video/*' : '.pdf,.doc,.docx,.txt,.png,.jpg,.jpeg'}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleFileUpload(index, file);
-                                  }
-                                }}
-                              />
-                            </label>
-                            <p className="pl-1">or drag and drop</p>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {material.type === 'video' ? 'Video files up to 100MB' : 'PDF, DOC, TXT, Images up to 100MB'}
-                          </p>
-                          {uploadingFiles.includes(index) && (
-                            <div className="text-sm text-blue-600">
-                              <div className="animate-spin inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
-                              Uploading...
-                            </div>
-                          )}
-                          {material.url && (
-                            <p className="text-sm text-green-600 font-medium">✓ File uploaded successfully</p>
-                          )}
-                          {!material.url && !uploadingFiles.includes(index) && (
-                            <p className="text-sm text-red-500">⚠️ File upload required</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {formData.materials.length === 0 && (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <DocumentIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p>No materials added yet. Click "Add Material" to get started.</p>
-                <p className="text-sm mt-2">Materials must have files uploaded to be included in the course.</p>
-              </div>
-            )}
-          </div>
-        </div>
 
         <div className="flex justify-end space-x-4">
           <button

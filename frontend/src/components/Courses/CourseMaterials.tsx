@@ -10,8 +10,7 @@ import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  LockClosedIcon,
-  LockOpenIcon
+
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import MaterialUpload from './MaterialUpload';
@@ -290,7 +289,7 @@ const CourseMaterials = () => {
                       <div className="flex items-center space-x-2">
                         <h3 className="font-medium text-gray-900">{material.title}</h3>
                         {material.isModuleMaterial && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                             {material.moduleTitle}
                           </span>
                         )}

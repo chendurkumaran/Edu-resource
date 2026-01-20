@@ -7,6 +7,38 @@ const { auth, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Enrollments
+ *   description: Enrollment management API
+ */
+
+/**
+ * @swagger
+ * /api/enrollments:
+ *   post:
+ *     summary: Enroll in a course
+ *     tags: [Enrollments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [courseId]
+ *             properties:
+ *               courseId: { type: string }
+ *     responses:
+ *       201:
+ *         description: Enrolled successfully
+ *       400:
+ *         description: Already enrolled or course full
+ *       404:
+ *         description: Course not found
+ */
 // @route   POST /api/enrollments
 // @desc    Enroll student in a course
 // @access  Private (Student only)
@@ -95,6 +127,25 @@ router.post('/', [
   }
 });
 
+/**
+ * @swagger
+ * /api/enrollments/student/{studentId}:
+ *   get:
+ *     summary: Get student enrollments
+ *     tags: [Enrollments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: List of enrollments
+ *       403:
+ *         description: Access denied
+ */
 // @route   GET /api/enrollments/student/:studentId
 // @desc    Get student enrollments
 // @access  Private
@@ -125,6 +176,25 @@ router.get('/student/:studentId', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/enrollments/course/{courseId}:
+ *   get:
+ *     summary: Get course enrollments
+ *     tags: [Enrollments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: List of enrollments
+ *       403:
+ *         description: Access denied
+ */
 // @route   GET /api/enrollments/course/:courseId
 // @desc    Get course enrollments
 // @access  Private (Instructor/Admin)
@@ -154,6 +224,25 @@ router.get('/course/:courseId', [auth, authorize('instructor', 'admin')], async 
   }
 });
 
+/**
+ * @swagger
+ * /api/enrollments/{id}:
+ *   delete:
+ *     summary: Drop a course
+ *     tags: [Enrollments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Dropped successfully
+ *       404:
+ *         description: Enrollment not found
+ */
 // @route   DELETE /api/enrollments/:id
 // @desc    Drop from course
 // @access  Private

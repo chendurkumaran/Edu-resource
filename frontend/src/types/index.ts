@@ -96,7 +96,7 @@ export interface Course {
   instructor: User;
   description: string;
   credits: number;
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  level: '1st Year' | '2nd Year' | '3rd Year' | '4th Year';
   // fees removed
   currentEnrollment: number;
   maxStudents: number;
@@ -107,6 +107,7 @@ export interface Course {
   prerequisites?: string[];
   category?: string;
   isActive?: boolean;
+  thumbnailImage?: string;
 }
 
 export interface Pagination {

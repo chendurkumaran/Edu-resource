@@ -6,6 +6,32 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Messages
+ *   description: Messaging API
+ */
+
+/**
+ * @swagger
+ * /api/messages/inbox:
+ *   get:
+ *     summary: Get user's inbox
+ *     tags: [Messages]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: List of received messages
+ */
 // @route   GET /api/messages/inbox
 // @desc    Get user's inbox
 // @access  Private
@@ -43,6 +69,18 @@ router.get('/inbox', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/messages/sent:
+ *   get:
+ *     summary: Get sent messages
+ *     tags: [Messages]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of sent messages
+ */
 // @route   GET /api/messages/sent
 // @desc    Get sent messages
 // @access  Private
@@ -62,6 +100,32 @@ router.get('/sent', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/messages:
+ *   post:
+ *     summary: Send a message
+ *     tags: [Messages]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [receiverId, subject, content]
+ *             properties:
+ *               receiverId: { type: string }
+ *               subject: { type: string }
+ *               content: { type: string }
+ *               priority: { type: string, enum: [normal, high] }
+ *     responses:
+ *       201:
+ *         description: Message sent
+ *       400:
+ *         description: Validation error
+ */
 // @route   POST /api/messages
 // @desc    Send a new message
 // @access  Private
@@ -106,6 +170,25 @@ router.post('/', [
   }
 });
 
+/**
+ * @swagger
+ * /api/messages/{id}/read:
+ *   put:
+ *     summary: Mark message as read
+ *     tags: [Messages]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Marked as read
+ *       403:
+ *         description: Access denied
+ */
 // @route   PUT /api/messages/:id/read
 // @desc    Mark message as read
 // @access  Private
@@ -131,6 +214,18 @@ router.put('/:id/read', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/messages/users:
+ *   get:
+ *     summary: Get users for messaging
+ *     tags: [Messages]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of available users
+ */
 // @route   GET /api/messages/users
 // @desc    Get users for messaging
 // @access  Private

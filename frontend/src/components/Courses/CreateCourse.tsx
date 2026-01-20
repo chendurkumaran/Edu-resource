@@ -2,9 +2,10 @@ import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  PlusIcon, 
-  TrashIcon, 
+import {
+  PlusIcon,
+  TrashIcon,
+  PhotoIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -17,13 +18,15 @@ interface CourseFormData {
   maxStudents: number;
   // fees removed
   category: string;
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  level: '1st Year' | '2nd Year' | '3rd Year' | '4th Year';
   prerequisites: string[];
 }
 
 const CreateCourse = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState<CourseFormData>({
     title: '',
     description: '',
@@ -32,25 +35,39 @@ const CreateCourse = () => {
     maxStudents: 30,
     // fees removed
     category: '',
-    level: 'Beginner',
+    level: '1st Year',
     prerequisites: []
   });
 
 
 
   const categories = [
-    'Computer Science', 'Mathematics', 'Physics', 'Chemistry', 
+    'Computer Science', 'Mathematics', 'Physics', 'Chemistry',
     'Biology', 'English', 'History', 'Arts', 'Business', 'Other'
   ];
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     // Handle checkbox separately if needed, but not used here for main form data currently
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'number' ? parseInt(value) || 0 : value
     }));
+  };
+
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedImage(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handlePrerequisiteChange = (index: number, value: string) => {
@@ -79,15 +96,33 @@ const CreateCourse = () => {
 
     try {
       // Clean up prerequisites
-      const cleanedData = {
-        ...formData,
-        prerequisites: formData.prerequisites.filter(p => p.trim() !== '')
-      };
+      const cleanedPrerequisites = formData.prerequisites.filter(p => p.trim() !== '');
 
-      const response = await axios.post('/api/courses', cleanedData);
-      
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('description', formData.description);
+      data.append('courseCode', formData.courseCode);
+      data.append('credits', String(formData.credits));
+      data.append('maxStudents', String(formData.maxStudents));
+      data.append('category', formData.category);
+      data.append('level', formData.level);
+
+      cleanedPrerequisites.forEach((p) => {
+        data.append('prerequisites[]', p); // Use [] for array
+      });
+
+      if (selectedImage) {
+        data.append('thumbnailImage', selectedImage);
+      }
+
+      const response = await axios.post('/api/courses', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
       toast.success('Course created! Redirecting to add modules...');
-      
+
       // Redirect to Add Module page with the new course ID
       navigate(`/courses/${response.data.course._id}/add-module`);
     } catch (error: any) {
@@ -110,7 +145,7 @@ const CreateCourse = () => {
         {/* Basic Information */}
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -171,9 +206,10 @@ const CreateCourse = () => {
                 onChange={handleChange}
                 className="input"
               >
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
               </select>
             </div>
 
@@ -225,6 +261,73 @@ const CreateCourse = () => {
               placeholder="Describe what students will learn in this course..."
             />
           </div>
+
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Course Thumbnail
+            </label>
+
+            {!previewUrl ? (
+              <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-primary-500 transition-colors duration-200">
+                <div className="space-y-1 text-center">
+                  <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                    >
+                      <span>Upload a file</span>
+                      <input
+                        id="file-upload"
+                        name="file-upload"
+                        type="file"
+                        className="sr-only"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, GIF up to 5MB
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4">
+                <div className="relative h-48 w-full md:w-96 rounded-lg overflow-hidden border border-gray-200 group">
+                  <img
+                    src={previewUrl}
+                    alt="Course Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setPreviewUrl(null);
+                      }}
+                      className="p-2 bg-white rounded-full shadow-lg hover:bg-red-50 transition-colors duration-200"
+                      title="Remove image"
+                    >
+                      <TrashIcon className="h-6 w-6 text-red-600" />
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedImage(null);
+                    setPreviewUrl(null);
+                  }}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+                >
+                  Remove Image
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Prerequisites */}
@@ -240,7 +343,7 @@ const CreateCourse = () => {
               Add
             </button>
           </div>
-          
+
           <div className="space-y-3">
             {formData.prerequisites.map((prereq, index) => (
               <div key={index} className="flex items-center space-x-3">

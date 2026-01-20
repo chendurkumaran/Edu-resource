@@ -48,7 +48,8 @@ const courseSchema = new mongoose.Schema({
   level: {
     type: String,
     required: [true, 'Level is required'],
-    enum: ['Beginner', 'Intermediate', 'Advanced']
+    enum: ['1st Year', '2nd Year', '3rd Year', '4th Year'],
+    default: '1st Year'
   },
   prerequisites: [String],
   modules: [{

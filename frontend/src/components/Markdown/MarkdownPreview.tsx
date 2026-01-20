@@ -26,37 +26,39 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ markdown, isHtmlPrevi
     });
   };
   return (
-    <div className=" w-1/2 p-2 ">
-      <div className="flex items-center gap-3">
+    <div className="w-1/2 p-2 flex flex-col">
+      <div className="flex items-center gap-3 mb-1">
         <button
           type="button"
           onClick={() => setIsHtmlPreview(false)}
-          className={`transition-colors ease-in-out duration-200 ${
-            isHtmlPreview === true ? "text-neutral-800" : "text-emerald-500"
-          }`}
+          className={`transition-colors ease-in-out duration-200 ${isHtmlPreview === true ? "text-neutral-800" : "text-emerald-500"
+            }`}
         >
           Preview
         </button>
         <button
           type="button"
           onClick={() => setIsHtmlPreview(true)}
-          className={`transition-colors ease-in-out duration-200 ${
-            isHtmlPreview === false ? "text-neutral-800" : "text-emerald-500"
-          }`}
+          className={`transition-colors ease-in-out duration-200 ${isHtmlPreview === false ? "text-neutral-800" : "text-emerald-500"
+            }`}
         >
           Raw
         </button>
       </div>
       <div
         id="preview-content"
-        className="h-[450px] bg-white p-4 shadow rounded overflow-auto border border-gray-300 mt-1"
+        className="flex-1 bg-white p-4 shadow rounded overflow-auto border border-gray-300 relative"
       >
         {isHtmlPreview ? (
-          <pre className="whitespace-pre-wrap text-sm relative">
-            {markdown}
+          <div className="h-full">
+            <textarea
+              className="w-full h-full resize-none outline-none font-mono text-xs"
+              readOnly
+              value={markdown}
+            />
             <button
               type="button"
-              className="absolute top-0 right-0 hover:text-emerald-500 transition-colors ease-in-out duration-200"
+              className="absolute top-2 right-2 hover:text-emerald-500 transition-colors ease-in-out duration-200"
               onClick={handleCopy}
             >
               {isCopied ? (
@@ -65,7 +67,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ markdown, isHtmlPrevi
                 <LuClipboard className="w-6 h-6" />
               )}
             </button>
-          </pre>
+          </div>
         ) : (
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}

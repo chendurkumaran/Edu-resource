@@ -3,13 +3,10 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
   PlusIcon,
   BookOpenIcon,
   UserIcon,
   CalendarIcon,
-  CurrencyDollarIcon,
   PencilIcon,
   EyeIcon,
   EyeSlashIcon,
@@ -34,12 +31,7 @@ const CourseList = () => {
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
 
-  const categories = [
-    'Computer Science', 'Mathematics', 'Physics', 'Chemistry',
-    'Biology', 'English', 'History', 'Arts', 'Business', 'Other'
-  ];
 
-  const levels = ['Beginner', 'Intermediate', 'Advanced'];
 
   useEffect(() => {
     fetchCourses();
@@ -138,11 +130,7 @@ const CourseList = () => {
     }
   };
 
-  const clearFilters = () => {
-    setSearchTerm('');
-    setSelectedCategory('');
-    setSelectedLevel('');
-  };
+
 
   if (loading && courses.length === 0) {
     return <LoadingSpinner />;
@@ -233,8 +221,18 @@ const CourseList = () => {
           {courses.map((course) => (
             <div key={course._id} className={`card hover:shadow-md transition-shadow duration-200 ${course.isActive === false ? 'opacity-75 bg-gray-50 dark:bg-gray-800/50' : ''}`}>
               {/* Course Image */}
-              <div className="h-48 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg mb-4 flex items-center justify-center">
-                <BookOpenIcon className="h-16 w-16 text-white" />
+              <div className="h-48 rounded-lg mb-4 overflow-hidden relative">
+                {course.thumbnailImage ? (
+                  <img
+                    src={course.thumbnailImage}
+                    alt={course.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <BookOpenIcon className="h-16 w-16 text-white" />
+                  </div>
+                )}
               </div>
 
               {/* Course Info */}
@@ -279,9 +277,10 @@ const CourseList = () => {
                   <span className="text-gray-600 dark:text-gray-400">
                     {course.currentEnrollment}/{course.maxStudents} enrolled
                   </span>
-                  <span className={`px-2 py-1 rounded-full text-xs ${course.level === 'Beginner' ? 'bg-green-100 text-green-800' :
-                    course.level === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
+                  <span className={`px-2 py-1 rounded-full text-xs ${course.level === '1st Year' ? 'bg-green-100 text-green-800' :
+                    course.level === '2nd Year' ? 'bg-blue-100 text-blue-800' :
+                      course.level === '3rd Year' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
                     }`}>
                     {course.level}
                   </span>

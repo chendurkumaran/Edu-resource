@@ -7,6 +7,119 @@ const { auth, authorize, checkApproval } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Course:
+ *       type: object
+ *       required:
+ *         - title
+ *         - description
+ *         - courseCode
+ *         - credits
+ *         - maxStudents
+ *         - category
+ *         - level
+ *       properties:
+ *         title:
+ *           type: string
+ *           description: Course title
+ *         description:
+ *           type: string
+ *           description: Course description
+ *         courseCode:
+ *           type: string
+ *           description: Unique course code
+ *         credits:
+ *           type: integer
+ *           description: Number of credits
+ *         maxStudents:
+ *           type: integer
+ *           description: Maximum number of students
+ *         category:
+ *           type: string
+ *           description: Course category
+ *         level:
+ *           type: string
+ *           enum: ['1st Year', '2nd Year', '3rd Year', '4th Year']
+ *           description: Course level
+ *         thumbnailImage:
+ *           type: string
+ *           description: URL of the course thumbnail
+ *         instructor:
+ *           $ref: '#/components/schemas/User'
+ *         modules:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               duration: { type: string }
+ *               markdownContent: { type: string }
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: Courses
+ *   description: Course management API
+ */
+
+/**
+ * @swagger
+ * /api/courses:
+ *   get:
+ *     summary: Get all courses
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by category
+ *       - in: query
+ *         name: level
+ *         schema:
+ *           type: string
+ *         description: Filter by level
+ *     responses:
+ *       200:
+ *         description: List of courses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 courses:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Course'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     current: { type: integer }
+ *                     pages: { type: integer }
+ *                     total: { type: integer }
+ *       500:
+ *         description: Server error
+ */
 // @route   GET /api/courses
 // @desc    Get all courses with filtering and pagination
 // @access  Public
@@ -14,7 +127,7 @@ router.get('/', [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('category').optional().trim(),
-  query('level').optional().isIn(['Beginner', 'Intermediate', 'Advanced']),
+  query('level').optional().isIn(['1st Year', '2nd Year', '3rd Year', '4th Year']),
   query('search').optional().trim()
 ], async (req, res) => {
   try {
@@ -163,6 +276,39 @@ router.get('/', [
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/{id}:
+ *   put:
+ *     summary: Update a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Course'
+ *     responses:
+ *       200:
+ *         description: Course updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Course'
+ *       403:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
+ */
 // @route   PUT /api/courses/:id
 // @desc    Update course details
 // @access  Private (Instructor only)
@@ -205,6 +351,29 @@ router.put('/:id', [auth, authorize('instructor')], async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/{id}:
+ *   delete:
+ *     summary: Delete a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Course removed
+ *       403:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
+ */
 // @route   DELETE /api/courses/:id
 // @desc    Delete a course
 // @access  Private (Instructor only)
@@ -231,6 +400,29 @@ router.delete('/:id', [auth, authorize('instructor')], async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/{id}:
+ *   get:
+ *     summary: Get course by ID
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Course details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Course'
+ *       404:
+ *         description: Course not found
+ */
 // @route   GET /api/courses/:id
 // @desc    Get single course by ID
 // @access  Public
@@ -253,13 +445,93 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Ensure upload directory exists
+const uploadDir = 'uploads/course-thumbnails';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Storage configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'course-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+// File filter
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Not an image! Please upload an image.'), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: fileFilter
+});
+
+/**
+ * @swagger
+ * /api/courses:
+ *   post:
+ *     summary: Create a new course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               courseCode: { type: string }
+ *               credits: { type: integer }
+ *               maxStudents: { type: integer }
+ *               category: { type: string }
+ *               level: { type: string }
+ *               thumbnailImage:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Course created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string }
+ *                 course: { $ref: '#/components/schemas/Course' }
+ *       400:
+ *         description: Validation error or course code exists
+ *       403:
+ *         description: Unauthorized (Instructor only)
+ *       500:
+ *         description: Server error
+ */
 // @route   POST /api/courses
 // @desc    Create a new course
 // @access  Private (Instructor only)
 router.post('/', [
   auth,
-  auth,
   authorize('instructor'),
+  upload.single('thumbnailImage'),
   body('title').trim().notEmpty().withMessage('Course title is required'),
   body('description').trim().notEmpty().withMessage('Course description is required'),
   body('courseCode').trim().notEmpty().withMessage('Course code is required'),
@@ -267,12 +539,16 @@ router.post('/', [
   body('maxStudents').isInt({ min: 1 }).withMessage('Maximum students must be at least 1'),
   // fees validation removed
   body('category').notEmpty().withMessage('Category is required'),
-  body('level').isIn(['Beginner', 'Intermediate', 'Advanced']).withMessage('Invalid level')
+  body('level').isIn(['1st Year', '2nd Year', '3rd Year', '4th Year']).withMessage('Invalid level')
   // Removed duration validation - now optional
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      // If there was an uploaded file but validation failed, delete it
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(400).json({ 
         message: 'Validation errors', 
         errors: errors.array() 
@@ -285,7 +561,15 @@ router.post('/', [
     });
     
     if (existingCourse) {
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ message: 'Course code already exists' });
+    }
+
+    // Process uploaded file
+    let thumbnailImage = '';
+    if (req.file) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      thumbnailImage = `${baseUrl}/${req.file.path.replace(/\\/g, '/')}`;
     }
 
     // Create course
@@ -293,7 +577,8 @@ router.post('/', [
       ...req.body,
       instructor: req.user._id,
       courseCode: req.body.courseCode.toUpperCase(),
-      isApproved: true // Courses are automatically approved
+      isApproved: true, // Courses are automatically approved
+      thumbnailImage // Add the image URL
     };
 
     const course = new Course(courseData);
@@ -306,11 +591,32 @@ router.post('/', [
       course
     });
   } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path); // Clean up on error
     console.error('Create course error:', error);
     res.status(500).json({ message: 'Server error while creating course' });
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/instructor/{instructorId}:
+ *   get:
+ *     summary: Get courses by instructor
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: instructorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of courses
+ *       403:
+ *         description: Access denied or Unauthorized
+ */
 // @route   GET /api/courses/instructor/:instructorId
 // @desc    Get courses by instructor
 // @access  Private
@@ -334,6 +640,41 @@ router.get('/instructor/:instructorId', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/{id}/material:
+ *   post:
+ *     summary: Add material to course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, type, url]
+ *             properties:
+ *               title: { type: string }
+ *               type: { type: string, enum: [pdf, video, link, document, note] }
+ *               url: { type: string }
+ *               filename: { type: string }
+ *               description: { type: string }
+ *     responses:
+ *       200:
+ *         description: Material added
+ *       403:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
+ */
 // @route   POST /api/courses/:id/material
 // @desc    Add material to a course
 // @access  Private
@@ -396,6 +737,35 @@ router.post('/:id/material', [
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/{id}/material/{materialId}:
+ *   put:
+ *     summary: Update a course material
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: materialId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string }
+ *               type: { type: string }
+ *               url: { type: string }
+ *     responses:
+ *       200: { description: Material updated }
+ */
 // @route   PUT /api/courses/:id/material/:materialId
 // @desc    Update a course material
 // @access  Private
@@ -454,6 +824,26 @@ router.put('/:id/material/:materialId', [
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/{id}/material/{materialId}:
+ *   delete:
+ *     summary: Delete a course material
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: materialId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Material deleted }
+ */
 // @route   DELETE /api/courses/:id/material/:materialId
 // @desc    Delete a course material
 // @access  Private
@@ -486,6 +876,34 @@ router.delete('/:id/material/:materialId', [auth, authorize('instructor')], asyn
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/{id}/modules:
+ *   post:
+ *     summary: Add a module to a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title]
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               duration: { type: string }
+ *               markdownContent: { type: string }
+ *     responses:
+ *       200: { description: Module added }
+ */
 // @route   POST /api/courses/:id/modules
 // @desc    Add a module to a course
 // @access  Private (Instructor only)
@@ -527,6 +945,36 @@ router.post('/:id/modules', [
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/{id}/modules/{moduleId}:
+ *   put:
+ *     summary: Update a module
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               duration: { type: string }
+ *               markdownContent: { type: string }
+ *     responses:
+ *       200: { description: Module updated }
+ */
 // @route   PUT /api/courses/:id/modules/:moduleId
 // @desc    Update a module
 // @access  Private (Instructor only)
@@ -556,6 +1004,26 @@ router.put('/:id/modules/:moduleId', [auth, authorize('instructor')], async (req
   }
 });
 
+/**
+ * @swagger
+ * /api/courses/{id}/modules/{moduleId}:
+ *   delete:
+ *     summary: Delete a module
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Module removed }
+ */
 // @route   DELETE /api/courses/:id/modules/:moduleId
 // @desc    Delete a module
 // @access  Private (Instructor only)

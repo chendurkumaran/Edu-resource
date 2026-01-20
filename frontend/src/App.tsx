@@ -22,6 +22,7 @@ import CreateCourse from './components/Courses/CreateCourse';
 import AddModule from './components/Courses/AddModule';
 import EditCourse from './components/Courses/EditCourse';
 import ManageModules from './components/Courses/ManageModules';
+import ModulePreview from './components/Courses/ModulePreview';
 
 import MyEnrollments from './components/Enrollments/MyEnrollments';
 import AssignmentList from './components/Assignments/AssignmentList';
@@ -143,6 +144,14 @@ function App() {
               <ProtectedRoute allowedRoles={['instructor']}>
                 <Layout>
                   <ManageModules />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/courses/:id/modules/:moduleId" element={
+              <ProtectedRoute allowedRoles={['instructor', 'student']}>
+                <Layout>
+                  <ModulePreview />
                 </Layout>
               </ProtectedRoute>
             } />

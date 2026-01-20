@@ -17,6 +17,37 @@ const getDocumentTypeLabel = (type) => {
   return labels[type] || type;
 };
 
+/**
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: User management API
+ */
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Get all users (Instructor only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: role
+ *         schema: { type: string, enum: [student, instructor, admin] }
+ *     responses:
+ *       200:
+ *         description: List of users
+ *       403:
+ *         description: Unauthorized
+ */
 // @route   GET /api/users
 // @desc    Get all users (Instructor only)
 // @access  Private (Instructor)
@@ -59,6 +90,25 @@ router.get('/', [auth, authorize('instructor')], async (req, res) => {
 // @route   GET /api/users/:id/profile
 // @desc    Get detailed user profile for instructor review
 // @access  Private (Instructor only)
+/**
+ * @swagger
+ * /api/users/{id}/profile:
+ *   get:
+ *     summary: Get user profile by ID
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: User profile
+ *       404:
+ *         description: User not found
+ */
 router.get('/:id/profile', [auth, authorize('instructor')], async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');

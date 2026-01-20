@@ -82,6 +82,47 @@ const uploadCourseMaterial = multer({
     fileFilter: materialFilter
 }).single('file');
 
+/**
+ * @swagger
+ * tags:
+ *   name: Upload
+ *   description: File upload API
+ */
+
+/**
+ * @swagger
+ * /api/upload:
+ *   post:
+ *     summary: Upload a single file
+ *     tags: [Upload]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               type:
+ *                 type: string
+ *                 enum: [course-material, video, document, pdf, note]
+ *     responses:
+ *       200:
+ *         description: File uploaded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url: { type: string }
+ *                 filename: { type: string }
+ *       400:
+ *         description: No file or invalid type
+ */
 // @route   POST /api/upload
 // @desc    Upload course material file
 // @access  Private
@@ -117,6 +158,30 @@ router.post('/', auth, (req, res) => {
     });
 });
 
+/**
+ * @swagger
+ * /api/upload/multiple:
+ *   post:
+ *     summary: Upload multiple files
+ *     tags: [Upload]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Files uploaded
+ */
 // @route   POST /api/upload/multiple
 // @desc    Upload multiple course material files
 // @access  Private

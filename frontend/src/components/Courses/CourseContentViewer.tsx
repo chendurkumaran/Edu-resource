@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     DocumentIcon,
     LinkIcon,
@@ -6,20 +7,18 @@ import {
     EyeIcon,
     ArrowRightIcon,
     XMarkIcon,
-    VideoCameraIcon
+    VideoCameraIcon,
+    ClockIcon,
+    BookOpenIcon
 } from '@heroicons/react/24/outline';
 import type { CourseMaterial, Module } from '../../types';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
 
 interface CourseContentViewerProps {
     materials: CourseMaterial[];
     modules?: Module[];
     isEnrolled: boolean;
     canEdit: boolean;
-    onEnroll: () => void;
-    enrollmentLoading: boolean;
+    courseId: string;
 }
 
 const CourseContentViewer = ({
@@ -27,9 +26,9 @@ const CourseContentViewer = ({
     modules,
     isEnrolled,
     canEdit,
-    onEnroll,
-    enrollmentLoading
+    courseId,
 }: CourseContentViewerProps) => {
+    const navigate = useNavigate();
     const [selectedMaterial, setSelectedMaterial] = useState<CourseMaterial | null>(null);
 
     const getIconForType = (type: string) => {
@@ -41,13 +40,13 @@ const CourseContentViewer = ({
         }
     };
 
-    const canAccessMaterial = (material: CourseMaterial) => {
-        return isEnrolled || canEdit || material.isFree; // Assuming isFree might be on backend even if type removed it
+    const canAccessMaterial = () => {
+        return isEnrolled || canEdit;
     };
 
     const MaterialItem = ({ material }: { material: CourseMaterial }) => {
         const Icon = getIconForType(material.type);
-        const canAccess = canAccessMaterial(material);
+        const canAccess = canAccessMaterial();
 
         return (
             <div
@@ -134,35 +133,45 @@ const CourseContentViewer = ({
 
                 {/* Modules List */}
                 {hasModules && (
-                    <div className="space-y-8">
+                    <div className="space-y-4">
                         {modules!.map((module, mIdx) => (
-                            <div key={module._id || mIdx} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
-                                <div className="mb-4">
-                                    <h3 className="text-lg font-bold text-gray-800">{module.title}</h3>
-                                    {module.duration && <span className="text-sm text-gray-500">{module.duration}</span>}
-                                    <p className="text-gray-600 mt-1">{module.description}</p>
-                                </div>
-
-                                {/* Markdown Content */}
-                                {module.markdownContent && (
-                                    <div className="prose max-w-none text-gray-700 mb-4 bg-gray-50 p-4 rounded-md">
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkGfm]}
-                                            rehypePlugins={[rehypeRaw]}
-                                        >
-                                            {module.markdownContent}
-                                        </ReactMarkdown>
+                            <div
+                                key={module._id || mIdx}
+                                onClick={() => {
+                                    if (module._id) {
+                                        navigate(`/courses/${courseId}/modules/${module._id}`);
+                                    }
+                                }}
+                                className="group relative bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all cursor-pointer hover:border-blue-200"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                            <DocumentIcon className="h-6 w-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                {module.title}
+                                            </h3>
+                                            <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                                {module.duration && (
+                                                    <span className="flex items-center">
+                                                        <ClockIcon className="w-3.5 h-3.5 mr-1" />
+                                                        {module.duration}
+                                                    </span>
+                                                )}
+                                                <span className="flex items-center">
+                                                    <BookOpenIcon className="w-3.5 h-3.5 mr-1" />
+                                                    {module.materials?.length || 0} materials
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
 
-                                {/* Module Materials */}
-                                <div className="space-y-3 pl-4 border-l-2 border-gray-100">
-                                    {module.materials && module.materials.map((mat, matIdx) => (
-                                        <MaterialItem key={mat._id || matIdx} material={mat} />
-                                    ))}
-                                    {(!module.materials || module.materials.length === 0) && (
-                                        <p className="text-sm text-gray-400 italic">No materials in this module.</p>
-                                    )}
+                                    <div className="flex items-center text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all">
+                                        <span className="text-sm font-medium mr-2 hidden sm:block">View Content</span>
+                                        <ArrowRightIcon className="h-5 w-5" />
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -181,43 +190,12 @@ const CourseContentViewer = ({
             </div>
 
             {/* Enrollment CTA */}
-            {/* {!isEnrolled && lockedMaterialsCount > 0 && (
-                    <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-semibold text-blue-900">
-                                    Unlock Premium Content
-                                </h3>
-                                <p className="text-blue-700 mt-1">
-                                    Enroll now to access all {materials.length} course materials, including {lockedMaterialsCount} premium {lockedMaterialsCount === 1 ? 'resource' : 'resources'}.
-                                </p>
-                                <div className="mt-3 flex items-center space-x-4 text-sm">
-                                    <span className="flex items-center text-green-600">
-                                        ✓ All video lectures
-                                    </span>
-                                    <span className="flex items-center text-green-600">
-                                        ✓ Study notes & documents
-                                    </span>
-                                    <span className="flex items-center text-green-600">
-                                        ✓ Assignments & quizzes
-                                    </span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={onEnroll}
-                                disabled={enrollmentLoading}
-                                className="btn btn-primary px-6 py-3 text-lg disabled:opacity-50"
-                            >
-                                {enrollmentLoading ? 'Enrolling...' : 'Enroll Now'}
-                            </button>
-                        </div>
-                    </div>
-                )} */}
+
 
 
             {/* Material Preview Modal */}
             {
-                selectedMaterial && canAccessMaterial(selectedMaterial) && (
+                selectedMaterial && canAccessMaterial() && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-lg max-w-4xl max-h-screen overflow-auto m-4">
                             <div className="p-6 border-b">

@@ -4,9 +4,7 @@ import MarkdownEditor from "./MarkdownEditor";
 import MarkdownPreview from "./MarkdownPreview";
 import { saveAs } from "file-saver";
 import { FiDownload } from "react-icons/fi";
-import { LuImport } from "react-icons/lu";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { LuImport, LuMaximize, LuMinimize } from "react-icons/lu";
 
 interface MarkdownManagerProps {
   initialValue?: string;
@@ -24,6 +22,11 @@ const MarkdownManager: React.FC<MarkdownManagerProps> = ({
   const [markdown, setMarkdown] = useState(initialValue);
   const [documentName, setDocumentName] = useState("Untitled.md");
   const [isHtmlPreview, setIsHtmlPreview] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  React.useEffect(() => {
+    setMarkdown(initialValue);
+  }, [initialValue]);
 
   const handleMarkdownChange = (value: string) => {
     setMarkdown(value);
@@ -73,91 +76,109 @@ const MarkdownManager: React.FC<MarkdownManagerProps> = ({
 
   const { lineCount, wordCount, charCount } = countMarkdownStats(markdown);
 
+  const toggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
+  };
+
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className={`${height} flex flex-col bg-white rounded-lg shadow-sm border border-gray-200`}>
-        <div className={`flex flex-col flex-grow max-[1050px]:hidden`}>
-          <header className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
-            <div className="flex items-center gap-4">
-              <input
-                className="bg-transparent border border-gray-200 py-1.5 px-3 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-700 text-sm"
-                value={documentName}
-                onChange={(e) => setDocumentName(e.target.value)}
-                placeholder="Document Name"
+
+    <div
+      className={`flex flex-col bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 ease-in-out ${isFullScreen
+        ? "fixed inset-0 z-50 rounded-none border-0"
+        : height
+        }`}
+    >
+      <div className={`flex flex-col flex-grow max-[1050px]:hidden`}>
+        <header className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
+          <div className="flex items-center gap-4">
+            <input
+              className="bg-transparent border border-gray-200 py-1.5 px-3 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-700 text-sm"
+              value={documentName}
+              onChange={(e) => setDocumentName(e.target.value)}
+              placeholder="Document Name"
+            />
+            <button
+              className="bg-neutral-700 hover:bg-neutral-950 text-white font-medium text-sm py-1.5 px-4 rounded-md transition-colors"
+              onClick={handleSave}
+              type="button"
+            >
+              Save
+            </button>
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={toggleFullScreen}
+              className="flex items-center gap-1 border border-gray-200 text-neutral-700 font-medium text-sm py-1.5 px-3 rounded-md hover:bg-gray-50 transition-colors"
+              type="button"
+              title={isFullScreen ? "Exit Full Screen" : "Full Screen"}
+            >
+              {isFullScreen ? <LuMinimize className="w-4 h-4" /> : <LuMaximize className="w-4 h-4" />}
+              {/* <span className="hidden sm:inline">{isFullScreen ? "Minimize" : "Maximize"}</span> */}
+            </button>
+
+            <button
+              onClick={() => handleDownload("markdown")}
+              className="flex items-center gap-1 border border-gray-200 text-neutral-700 font-medium text-sm py-1.5 px-3 rounded-md hover:bg-gray-50 transition-colors"
+              type="button"
+            >
+              <FiDownload />
+              Download
+            </button>
+
+            <input
+              type="file"
+              onChange={handleImport}
+              className="hidden"
+              id="md-file-upload"
+              accept=".md,.txt"
+            />
+            <label
+              htmlFor="md-file-upload"
+              className="flex items-center gap-1 border border-gray-200 text-neutral-700 font-medium text-sm py-1.5 px-3 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <LuImport className="w-4 h-4" />
+              Import
+            </label>
+          </div>
+        </header>
+
+        <div className="flex flex-grow overflow-hidden">
+          <div className="w-full flex flex-col overflow-hidden">
+            <div className="flex flex-grow p-2 overflow-hidden">
+              <MarkdownEditor
+                markdown={markdown}
+                onMarkdownChange={handleMarkdownChange}
               />
-              <button
-                className="bg-neutral-700 hover:bg-neutral-950 text-white font-medium text-sm py-1.5 px-4 rounded-md transition-colors"
-                onClick={handleSave}
-                type="button"
-              >
-                Save
-              </button>
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => handleDownload("markdown")}
-                className="flex items-center gap-1 border border-gray-200 text-neutral-700 font-medium text-sm py-1.5 px-3 rounded-md hover:bg-gray-50 transition-colors"
-                type="button"
-              >
-                <FiDownload />
-                Download
-              </button>
 
-              <input
-                type="file"
-                onChange={handleImport}
-                className="hidden"
-                id="md-file-upload"
-                accept=".md,.txt"
+              <MarkdownPreview
+                markdown={markdown}
+                isHtmlPreview={isHtmlPreview}
+                setIsHtmlPreview={setIsHtmlPreview}
               />
-              <label
-                htmlFor="md-file-upload"
-                className="flex items-center gap-1 border border-gray-200 text-neutral-700 font-medium text-sm py-1.5 px-3 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <LuImport className="w-4 h-4" />
-                Import
-              </label>
             </div>
-          </header>
-
-          <div className="flex flex-grow overflow-hidden">
-            <div className="w-full flex flex-col overflow-hidden">
-              <div className="flex flex-grow p-2 overflow-hidden">
-                <MarkdownEditor
-                  markdown={markdown}
-                  onMarkdownChange={handleMarkdownChange}
-                />
-
-                <MarkdownPreview
-                  markdown={markdown}
-                  isHtmlPreview={isHtmlPreview}
-                  setIsHtmlPreview={setIsHtmlPreview}
-                />
-              </div>
-              {/* Display stats at the bottom */}
-              <div className="px-4 py-2 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500 bg-gray-50">
-                <span className="border border-gray-200 bg-white rounded-md px-2 py-0.5">
-                  Lines: {lineCount}
-                </span>
-                <span className="border border-gray-200 bg-white rounded-md px-2 py-0.5">
-                  Words: {wordCount}
-                </span>
-                <span className="border border-gray-200 bg-white rounded-md px-2 py-0.5">
-                  Characters: {charCount}
-                </span>
-              </div>
+            {/* Display stats at the bottom */}
+            <div className="px-4 py-2 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500 bg-gray-50">
+              <span className="border border-gray-200 bg-white rounded-md px-2 py-0.5">
+                Lines: {lineCount}
+              </span>
+              <span className="border border-gray-200 bg-white rounded-md px-2 py-0.5">
+                Words: {wordCount}
+              </span>
+              <span className="border border-gray-200 bg-white rounded-md px-2 py-0.5">
+                Characters: {charCount}
+              </span>
             </div>
           </div>
         </div>
-
-        {/* Mobile Warning */}
-        <div className="min-[1050px]:hidden flex items-center justify-center p-8 text-center">
-          <p className="text-gray-600 text-sm">
-            The Markdown Editor is best viewed on a larger screen (desktop/laptop).
-          </p>
-        </div>
       </div>
-    </DndProvider>
+
+      {/* Mobile Warning */}
+      <div className="min-[1050px]:hidden flex items-center justify-center p-8 text-center">
+        <p className="text-gray-600 text-sm">
+          The Markdown Editor is best viewed on a larger screen (desktop/laptop).
+        </p>
+      </div>
+    </div>
   );
 }
 

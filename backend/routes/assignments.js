@@ -6,6 +6,25 @@ const { auth, authorize, checkApproval } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Assignments
+ *   description: Assignment management API
+ */
+
+/**
+ * @swagger
+ * /api/assignments:
+ *   get:
+ *     summary: Get assignments for current user
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of assignments
+ */
 // @route   GET /api/assignments
 // @desc    Get assignments for current user
 // @access  Private
@@ -44,6 +63,35 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/assignments:
+ *   post:
+ *     summary: Create a new assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, description, courseId, type, totalPoints, dueDate]
+ *             properties:
+ *               courseId: { type: string }
+ *               title: { type: string }
+ *               description: { type: string }
+ *               type: { type: string, enum: [homework, quiz, exam, project, presentation] }
+ *               totalPoints: { type: integer }
+ *               dueDate: { type: string, format: date-time }
+ *               isPublished: { type: boolean }
+ *     responses:
+ *       201:
+ *         description: Assignment created
+ *       403:
+ *         description: Unauthorized
+ */
 // @route   POST /api/assignments
 // @desc    Create a new assignment
 // @access  Private (Instructor only)
@@ -153,6 +201,23 @@ router.post('/', [
   }
 });
 
+/**
+ * @swagger
+ * /api/assignments/course/{courseId}:
+ *   get:
+ *     summary: Get assignments for a course
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: List of assignments
+ */
 // @route   GET /api/assignments/course/:courseId
 // @desc    Get assignments for a course
 // @access  Private
@@ -172,6 +237,25 @@ router.get('/course/:courseId', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   get:
+ *     summary: Get single assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Assignment details
+ *       404:
+ *         description: Assignment not found
+ */
 // @route   GET /api/assignments/:id
 // @desc    Get single assignment
 // @access  Private
@@ -192,6 +276,31 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   put:
+ *     summary: Update assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               dueDate: { type: string, format: date-time }
+ *     responses:
+ *       200: { description: Updated successfully }
+ */
 // @route   PUT /api/assignments/:id
 // @desc    Update assignment
 // @access  Private (Instructor only)
@@ -231,6 +340,22 @@ router.put('/:id', [
   }
 });
 
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   delete:
+ *     summary: Delete assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Deleted successfully }
+ */
 // @route   DELETE /api/assignments/:id
 // @desc    Delete assignment
 // @access  Private (Instructor only)

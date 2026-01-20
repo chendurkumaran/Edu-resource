@@ -4,6 +4,25 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Notifications
+ *   description: Notification API
+ */
+
+/**
+ * @swagger
+ * /api/notifications:
+ *   get:
+ *     summary: Get user notifications
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of notifications
+ */
 // @route   GET /api/notifications
 // @desc    Get user notifications
 // @access  Private
@@ -32,6 +51,23 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/notifications/{id}/read:
+ *   put:
+ *     summary: Mark notification as read
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Marked as read
+ */
 // @route   PUT /api/notifications/:id/read
 // @desc    Mark notification as read
 // @access  Private
@@ -57,6 +93,18 @@ router.put('/:id/read', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/notifications/mark-all-read:
+ *   put:
+ *     summary: Mark all notifications as read
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All marked as read
+ */
 // @route   PUT /api/notifications/mark-all-read
 // @desc    Mark all notifications as read
 // @access  Private
