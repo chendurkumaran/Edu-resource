@@ -76,7 +76,7 @@ export interface CourseMaterial {
   filename?: string;
   // isFree removed
   // Included directly in the interface for simplicity in frontend handling, though backend might not send it.
-  file?: File | null; 
+  file?: File | null;
 }
 
 export interface Module {
@@ -110,6 +110,7 @@ export interface Course {
   category?: string;
   isActive?: boolean;
   thumbnailImage?: string;
+  isFree?: boolean;
 }
 
 export interface Pagination {
@@ -126,6 +127,8 @@ export interface Attachment {
   filename: string;
   size: number;
   mimetype: string;
+  type?: 'file' | 'link';
+  url?: string;
 }
 
 export interface RubricItem {
@@ -152,7 +155,7 @@ export interface Assignment {
   latePenalty?: number;
   rubric?: RubricItem[];
   attachments?: Attachment[];
-  solution?: Attachment;
+  solution?: Attachment[];
   isSolutionVisible?: boolean;
   enrollmentCount?: number;
   isSubmitted?: boolean;

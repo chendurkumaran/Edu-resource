@@ -133,9 +133,9 @@ router.get('/', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
@@ -145,33 +145,33 @@ router.get('/', [
 
     // Build filter object
     let filter = {};
-    
+
     // Check for auth token to allow instructors to see "My Courses" even if inactive
     if (req.headers.authorization) {
       try {
         const token = req.headers.authorization.replace('Bearer ', '');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
+
         // If user is authenticated, we adjust the filter logic
         // We want: (isActive: true) OR (instructor: userId)
         if (req.query.search || req.query.category || req.query.level) {
-           // If other filters are present, we need to respect them AND the visibility rule
-           // Base rule: (isActive: true OR instructor: me)
-           // But how to combine with other filters?
-           // Actually, simpler: Default is { isActive: true }
-           // If instructor, we change to { $or: [{ isActive: true }, { instructor: userId }] }
-           // But we still need to apply search/category/level filters.
-           
-           filter.$or = [
-             { isActive: true },
-             { instructor: decoded.userId }
-           ];
+          // If other filters are present, we need to respect them AND the visibility rule
+          // Base rule: (isActive: true OR instructor: me)
+          // But how to combine with other filters?
+          // Actually, simpler: Default is { isActive: true }
+          // If instructor, we change to { $or: [{ isActive: true }, { instructor: userId }] }
+          // But we still need to apply search/category/level filters.
+
+          filter.$or = [
+            { isActive: true },
+            { instructor: decoded.userId }
+          ];
         } else {
-           // No other filters? Same logic.
-           filter.$or = [
-             { isActive: true },
-             { instructor: decoded.userId }
-           ];
+          // No other filters? Same logic.
+          filter.$or = [
+            { isActive: true },
+            { instructor: decoded.userId }
+          ];
         }
       } catch (err) {
         // Invalid token, treat as public
@@ -180,25 +180,25 @@ router.get('/', [
     } else {
       filter.isActive = true;
     }
-    
+
     // If we have specific filters from query, we must ensure they are applied effectively
     // Note: If using $or for visibility, we must combine it with other filters via $and if necessary.
     // MongoDB structure: { $and: [ { VISIBILITY_RULE }, { FILTER_RULE } ] }
-    
+
     // Let's refine the filter construction:
     const visibilityFilter = filter.$or ? { $or: filter.$or } : { isActive: true };
-    
+
     // Reset filter to build it properly
     filter = { ...visibilityFilter };
-    
+
     if (req.query.category) {
       filter.category = req.query.category;
     }
-    
+
     if (req.query.level) {
       filter.level = req.query.level;
     }
-    
+
     if (req.query.search) {
       // If search exists, we need to combine with visibility
       const searchFilter = {
@@ -208,24 +208,24 @@ router.get('/', [
           { courseCode: { $regex: req.query.search, $options: 'i' } }
         ]
       };
-      
+
       // Merge search filter with existing filter
       // If filter already has $or (from visibility), we need to use $and
       if (filter.$or) {
         filter = {
           $and: [
-             { $or: filter.$or }, // Visibility: Active OR Mine
-             searchFilter         // AND Search match
+            { $or: filter.$or }, // Visibility: Active OR Mine
+            searchFilter         // AND Search match
           ]
         };
         // Re-apply category/level if they were added (since we reset filter)
         // Wait, the previous lines 35-41 added category/level to the 'filter' object directly.
         // If we switch to $and root, we need to put category/level inside $and or at root level (if not conflicting).
         // Mixing top-level fields with $and is fine.
-        
+
         if (req.query.category) filter.category = req.query.category;
         if (req.query.level) filter.level = req.query.level;
-        
+
       } else {
         // Public (isActive: true)
         // searchFilter has $or, so we use $and to combine: (Active) AND (SearchMatch)
@@ -236,17 +236,17 @@ router.get('/', [
         // We have `filter.isActive = true`.
         // We add `filter.$or = [search...]`.
         // Result: `isActive: true` AND (`title match` OR `desc match`...). This is CORRECT.
-        
+
         // So for public users, existing logic was:
         // filter = { isActive: true }
         // if search: filter.$or = [search_criteria]
         // This works: Active AND (Search Criteria).
-        
+
         // For instructors:
         // filter = { $or: [{isActive: true}, {instructor: me}] }
         // if search: filter.$or = [search_criteria] -> THIS OVERWRITES the visibility $or!
         // We need $and.
-        
+
       }
     }
 
@@ -315,7 +315,7 @@ router.get('/', [
 router.put('/:id', [auth, authorize('instructor')], async (req, res) => {
   try {
     const { title, description, category, level, credits, maxStudents, fees, isActive, prerequisites, materials, thumbnailImage } = req.body;
-    
+
     let course = await Course.findById(req.params.id);
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -337,7 +337,9 @@ router.put('/:id', [auth, authorize('instructor')], async (req, res) => {
     if (isActive !== undefined) updates.isActive = isActive;
     if (prerequisites) updates.prerequisites = prerequisites;
     if (materials) updates.materials = materials;
+    if (materials) updates.materials = materials;
     if (thumbnailImage !== undefined) updates.thumbnailImage = thumbnailImage;
+    if (req.body.isFree !== undefined) updates.isFree = req.body.isFree;
 
     course = await Course.findByIdAndUpdate(
       req.params.id,
@@ -433,7 +435,7 @@ router.get('/:id', async (req, res) => {
       .populate('instructor', 'firstName lastName email profileImage')
       .populate({
         path: 'modules.assignments',
-        select: 'title dueDate isPublished'
+        select: 'title dueDate isPublished attachments solution isSolutionVisible'
       });
 
     if (!course) {
@@ -480,7 +482,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
@@ -554,17 +556,17 @@ router.post('/', [
       if (req.file) {
         fs.unlinkSync(req.file.path);
       }
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
     // Check if course code already exists
-    const existingCourse = await Course.findOne({ 
-      courseCode: req.body.courseCode.toUpperCase() 
+    const existingCourse = await Course.findOne({
+      courseCode: req.body.courseCode.toUpperCase()
     });
-    
+
     if (existingCourse) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ message: 'Course code already exists' });
@@ -583,7 +585,8 @@ router.post('/', [
       instructor: req.user._id,
       courseCode: req.body.courseCode.toUpperCase(),
       isApproved: true, // Courses are automatically approved
-      thumbnailImage // Add the image URL
+      thumbnailImage, // Add the image URL
+      isFree: req.body.isFree === 'true' || req.body.isFree === true
     };
 
     const course = new Course(courseData);
@@ -632,11 +635,11 @@ router.get('/instructor/:instructorId', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const courses = await Course.find({ 
+    const courses = await Course.find({
       instructor: req.params.instructorId
     })
-    .populate('instructor', 'firstName lastName email')
-    .sort({ createdAt: -1 });
+      .populate('instructor', 'firstName lastName email')
+      .sort({ createdAt: -1 });
 
     res.json(courses);
   } catch (error) {
@@ -684,8 +687,8 @@ router.get('/instructor/:instructorId', auth, async (req, res) => {
 // @desc    Add material to a course
 // @access  Private
 router.post('/:id/material', [
-  auth, 
-  auth, 
+  auth,
+  auth,
   authorize('instructor'),
   body('title').notEmpty().withMessage('Title is required'),
   body('type').isIn(['pdf', 'video', 'link', 'document', 'note']).withMessage('Invalid material type'),
@@ -695,9 +698,9 @@ router.post('/:id/material', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
@@ -775,8 +778,8 @@ router.post('/:id/material', [
 // @desc    Update a course material
 // @access  Private
 router.put('/:id/material/:materialId', [
-  auth, 
-  auth, 
+  auth,
+  auth,
   authorize('instructor'),
   body('title').optional().notEmpty().withMessage('Title cannot be empty'),
   body('type').optional().isIn(['pdf', 'video', 'link', 'document', 'note']).withMessage('Invalid material type'),
@@ -786,9 +789,9 @@ router.put('/:id/material/:materialId', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 

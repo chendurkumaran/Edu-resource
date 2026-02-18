@@ -5,7 +5,8 @@ import {
   CheckCircleIcon,
   FunnelIcon,
   XMarkIcon,
-  AcademicCapIcon
+  AcademicCapIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -67,6 +68,18 @@ const UserManagement = () => {
       fetchUsers();
     } catch (error) {
       toast.error('Failed to deactivate user');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) return;
+
+    try {
+      await axios.delete(`/api/users/${userId}`);
+      toast.success('User deleted permanently');
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to delete user');
     }
   };
 
@@ -285,12 +298,21 @@ const UserManagement = () => {
                         Deactivate
                       </button>
                     ) : (
-                      <button
-                        onClick={() => activateUser(user._id)}
-                        className="text-green-600 hover:text-green-900"
-                      >
-                        Activate
-                      </button>
+                      <>
+                        <button
+                          onClick={() => activateUser(user._id)}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          Activate
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user._id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Permanently delete user"
+                        >
+                          <TrashIcon className="h-5 w-5 inline" />
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => handleEditClick(user)}

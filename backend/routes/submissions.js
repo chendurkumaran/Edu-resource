@@ -169,9 +169,9 @@ router.post('/submit', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
@@ -202,6 +202,112 @@ router.post('/submit', [
   } catch (error) {
     console.error('Submit assignment error:', error);
     res.status(500).json({ message: 'Server error while submitting assignment' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/submissions/{id}:
+ *   put:
+ *     summary: Update a submission
+ *     tags: [Submissions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               submissionText: { type: string }
+ *               attachments: { type: array }
+ *     responses:
+ *       200:
+ *         description: Submission updated
+ *       403:
+ *         description: Cannot edit graded submission or overdue
+ */
+// @route   PUT /api/submissions/:id
+// @desc    Update a submission
+// @access  Private (Student only)
+router.put('/:id', [
+  auth,
+  authorize('student'),
+  body('submissionText').optional(),
+  body('attachments').optional()
+], async (req, res) => {
+  try {
+    const { submissionText, attachments } = req.body;
+
+    const submission = await Submission.findById(req.params.id);
+
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found' });
+    }
+
+    // Check ownership
+    if (submission.student.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Check if already graded
+    if (submission.status === 'graded') {
+      return res.status(403).json({ message: 'Cannot edit a graded submission' });
+    }
+
+    // Check if assignment allows updates (e.g. not overdue)
+    // Fetch assignment
+    const assignment = await Assignment.findById(submission.assignment);
+    const isOverdue = assignment.dueDate ? new Date() > new Date(assignment.dueDate) : false;
+
+    if (isOverdue && !assignment.allowLateSubmission) {
+      return res.status(403).json({ message: 'Assignment is closed for submissions' });
+    }
+
+    // Update fields
+    if (submissionText !== undefined) submission.submissionText = submissionText;
+
+    // Handle attachments update
+    // If new attachments are provided, we replace the old list and delete old physical files
+    if (attachments) {
+      // Delete old files
+      if (submission.attachments && submission.attachments.length > 0) {
+        const fs = require('fs');
+        const path = require('path');
+        submission.attachments.forEach(file => {
+          const rootDir = path.join(__dirname, '..');
+          // Handle both relative and absolute path legacy (just in case)
+          // But we expect relative paths from now on
+          const filePath = path.join(rootDir, file.path);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        });
+      }
+      submission.attachments = attachments;
+    }
+
+    // Update submittedAt to now? Or keep original? usually 'modifiedAt'
+    // But let's update submittedAt to reflect the new version time
+    submission.submittedAt = new Date();
+    submission.status = 'resubmitted'; // Optional status change
+
+    await submission.save();
+
+    res.json({
+      message: 'Submission updated successfully',
+      submission
+    });
+
+  } catch (error) {
+    console.error('Update submission error:', error);
+    res.status(500).json({ message: 'Server error while updating submission' });
   }
 });
 
@@ -288,9 +394,9 @@ router.put('/:id/grade', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
@@ -372,29 +478,29 @@ router.delete('/:id', auth, async (req, res) => {
 
     // Checking if assignment belongs to instructor if user is instructor
     if (req.user.role === 'instructor' && submission.assignment.instructor.toString() !== req.user._id.toString()) {
-       // Ideally we check this, but if role is 'instructor' strictly, maybe they can only delete submissions for their courses. 
-       // For now allowing if they are the instructor of the course or admin.
-       // Refined check:
-       if (submission.assignment.instructor.toString() !== req.user._id.toString()) {
-          return res.status(403).json({ message: 'Access denied: Not your assignment' });
-       }
+      // Ideally we check this, but if role is 'instructor' strictly, maybe they can only delete submissions for their courses. 
+      // For now allowing if they are the instructor of the course or admin.
+      // Refined check:
+      if (submission.assignment.instructor.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Access denied: Not your assignment' });
+      }
     }
 
     // Delete files from filesystem
     if (submission.attachments && submission.attachments.length > 0) {
       const fs = require('fs');
       const path = require('path');
-      
+
       submission.attachments.forEach(file => {
         // Construct path. submissions.js is in /routes, uploads is in /uploads (sibling to routes parent)
         // file.path is likely 'uploads/documents/filename.ext'
         // __dirname is .../backend/routes
         // We need .../backend/
-        const rootDir = path.join(__dirname, '..'); 
+        const rootDir = path.join(__dirname, '..');
         const filePath = path.join(rootDir, file.path); // path.join handles separators
-        
+
         console.log(`Attempting to delete file at: ${filePath}`);
-        
+
         fs.unlink(filePath, (err) => {
           if (err) {
             console.error(`Failed to delete file ${filePath}:`, err);

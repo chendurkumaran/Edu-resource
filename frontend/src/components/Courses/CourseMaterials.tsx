@@ -10,7 +10,7 @@ import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-
+  EyeIcon,
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import MaterialUpload from './MaterialUpload';
@@ -315,7 +315,18 @@ const CourseMaterials = () => {
                       Open
                     </a>
 
-                    {/* Only allow edit/delete for direct course materials, or if we implemented module material editing here */}
+                    {/* View PDF button */}
+                    <a
+                      href={material.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary btn-sm"
+                      title="View document"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </a>
+
+                    {/* Only allow edit/delete for direct course materials */}
                     {canEdit && !material.isModuleMaterial && (
                       <>
                         <button

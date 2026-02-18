@@ -105,10 +105,10 @@ router.post('/register', [
   body('phone').optional().isLength({ min: 10, max: 10 }).withMessage('Phone number must be exactly 10 digits'),
   body('registrationNumber').optional().custom((value, { req }) => {
     if (req.body.role === 'student') {
-       if (!value) throw new Error('Registration number is required for students');
-       if (!/^\d{2}[a-zA-Z]{3}\d{4}$/.test(value)) {
-         throw new Error('Invalid Registration Number format (e.g., 11aaa1111)');
-       }
+      if (!value) throw new Error('Registration number is required for students');
+      if (!/^\d{2}[a-zA-Z]{3}\d{4}$/.test(value)) {
+        throw new Error('Invalid Registration Number format (e.g., 11aaa1111)');
+      }
     }
     return true;
   })
@@ -116,9 +116,9 @@ router.post('/register', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
@@ -128,6 +128,14 @@ router.post('/register', [
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
+    }
+
+    // Check if registration number already exists (if provided)
+    if (registrationNumber) {
+      const existingReg = await User.findOne({ registrationNumber });
+      if (existingReg) {
+        return res.status(400).json({ message: 'Registration number already in use' });
+      }
     }
 
     // Strict Instructor Check
@@ -176,6 +184,13 @@ router.post('/register', [
     });
   } catch (error) {
     console.error('Registration error:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Duplicate field value entered' });
+    }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
     res.status(500).json({ message: 'Server error during registration' });
   }
 });
@@ -223,9 +238,9 @@ router.post('/login', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
@@ -290,15 +305,15 @@ router.put('/profile', auth, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
     const allowedUpdates = ['firstName', 'lastName', 'phone', 'dateOfBirth', 'address'];
     const updates = {};
-    
+
     Object.keys(req.body).forEach(key => {
       if (allowedUpdates.includes(key)) {
         updates[key] = req.body[key];
@@ -331,9 +346,9 @@ router.put('/change-password', auth, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
@@ -369,3 +384,5 @@ router.post('/logout', auth, (req, res) => {
 
 
 module.exports = router;
+// Trigger restart
+

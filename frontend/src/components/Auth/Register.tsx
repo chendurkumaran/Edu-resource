@@ -46,6 +46,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [generalError, setGeneralError] = useState('');
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -67,12 +68,34 @@ const Register = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.email.endsWith('@gmail.com')) {
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!formData.email.endsWith('@gmail.com')) {
       newErrors.email = 'Email must end with @gmail.com';
     }
 
     if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
       newErrors.phone = 'Phone number must be exactly 10 digits';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     if (formData.role === 'student') {
@@ -89,24 +112,30 @@ const Register = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setGeneralError('');
 
     if (!validateForm()) return;
 
     setIsLoading(true);
 
-    const { confirmPassword, ...registerData } = formData;
-    const result = await register(registerData);
+    try {
+      const { confirmPassword, ...registerData } = formData;
+      const result = await register(registerData);
 
-    if (result.success) {
-      if (result.needsDocuments) {
-        // Redirect to document upload for instructors
-        navigate('/upload-documents');
+      if (result.success) {
+        if (result.needsDocuments) {
+          navigate('/upload-documents');
+        } else {
+          navigate('/');
+        }
       } else {
-        navigate('/');
+        setGeneralError(result.message || 'Registration failed. Please try again.');
       }
+    } catch {
+      setGeneralError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -122,6 +151,12 @@ const Register = () => {
           </Link>
         </p>
       </div>
+
+      {generalError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-700">{generalError}</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">

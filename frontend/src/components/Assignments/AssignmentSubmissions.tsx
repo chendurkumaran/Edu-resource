@@ -222,7 +222,12 @@ const AssignmentSubmissions = () => {
                         {/* View File Link */}
                         {(submission.attachments?.length ?? 0) > 0 && (
                           <a
-                            href={`http://localhost:5000/${submission.attachments![0].path.replace(/^\\|\\\\/, '')}`} // Strip leading slash if present just in case
+                            href={(() => {
+                              const path = submission.attachments![0].path;
+                              return path.startsWith('http')
+                                ? path
+                                : `http://localhost:5000/${path.replace(/^\\|\\\\/, '')}`;
+                            })()}
                             target="_blank"
                             rel="noreferrer"
                             className="text-blue-600 hover:text-blue-900 font-medium transition-colors"

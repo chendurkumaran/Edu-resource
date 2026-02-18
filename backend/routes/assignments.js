@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Assignment = require('../models/Assignment');
 const Course = require('../models/Course');
-const { auth, authorize, checkApproval } = require('../middleware/auth');
+const { auth, authorize, checkApproval, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -31,24 +31,24 @@ const router = express.Router();
 router.get('/', auth, async (req, res) => {
   try {
     let assignments;
-    
+
     if (req.user.role === 'student') {
       // Get assignments from enrolled courses
       const Enrollment = require('../models/Enrollment'); // Fixed: Move require inside function
-      const enrollments = await Enrollment.find({ 
+      const enrollments = await Enrollment.find({
         student: req.user._id,
         status: 'enrolled'
       }).populate('course');
-      
+
       const courseIds = enrollments.map(enrollment => enrollment.course._id);
-      
+
       assignments = await Assignment.find({
         course: { $in: courseIds },
         isPublished: true
       })
-      .populate('course', 'title courseCode')
-      .populate('instructor', 'firstName lastName')
-      .sort({ dueDate: 1 });
+        .populate('course', 'title courseCode')
+        .populate('instructor', 'firstName lastName')
+        .sort({ dueDate: 1 });
     } else {
       // Instructors get their own assignments
       assignments = await Assignment.find({ instructor: req.user._id })
@@ -59,7 +59,7 @@ router.get('/', auth, async (req, res) => {
     if (req.user.role === 'student' && assignments.length > 0) {
       const Submission = require('../models/Submission');
       const assignmentIds = assignments.map(a => a._id);
-      
+
       const submissions = await Submission.find({
         student: req.user._id,
         assignment: { $in: assignmentIds }
@@ -72,9 +72,9 @@ router.get('/', auth, async (req, res) => {
         isSubmitted: submittedAssignmentIds.has(assignment._id.toString())
       }));
     } else if (req.user.role === 'student') {
-        // Ensure toObject() is called if no assignments found/submission logic skipped? 
-        // Actually if length is 0, map is empty. Safe.
-        // But if logic skipped (failed check), we just return assignments as is.
+      // Ensure toObject() is called if no assignments found/submission logic skipped? 
+      // Actually if length is 0, map is empty. Safe.
+      // But if logic skipped (failed check), we just return assignments as is.
     }
 
     res.json(assignments);
@@ -141,9 +141,9 @@ router.post('/', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation errors', 
-        errors: errors.array() 
+      return res.status(400).json({
+        message: 'Validation errors',
+        errors: errors.array()
       });
     }
 
@@ -160,12 +160,14 @@ router.post('/', [
     }
 
     // Ensure dueDate is properly formatted and valid
-    const parsedDueDate = new Date(dueDate);
-    if (isNaN(parsedDueDate.getTime())) {
-      return res.status(400).json({ message: 'Invalid due date format' });
+    let parsedDueDate = null;
+    if (dueDate) {
+      parsedDueDate = new Date(dueDate);
+      if (isNaN(parsedDueDate.getTime())) {
+        return res.status(400).json({ message: 'Invalid due date format' });
+      }
+      console.log('Creating assignment with due date:', parsedDueDate.toISOString()); // Debug log
     }
-
-    console.log('Creating assignment with due date:', parsedDueDate.toISOString()); // Debug log
 
     const assignment = new Assignment({
       title,
@@ -179,7 +181,7 @@ router.post('/', [
       allowLateSubmission: allowLateSubmission !== undefined ? allowLateSubmission : true,
       latePenalty: latePenalty || 0,
       attachments: attachments || [],
-      solution: solution || null,
+      solution: solution || [],
       isSolutionVisible: isSolutionVisible || false
     });
 
@@ -194,14 +196,14 @@ router.post('/', [
     if (isPublished) {
       const Enrollment = require('../models/Enrollment');
       const Notification = require('../models/Notification');
-      
+
       const enrolledStudents = await Enrollment.find({
         course: courseId,
         status: 'enrolled'
       }).populate('student');
 
       // Create notifications for all enrolled students
-      const notificationPromises = enrolledStudents.map(enrollment => 
+      const notificationPromises = enrolledStudents.map(enrollment =>
         Notification.createNotification({
           recipient: enrollment.student._id,
           title: 'New Assignment Available',
@@ -252,13 +254,13 @@ router.get('/course/:courseId', auth, async (req, res) => {
       course: req.params.courseId,
       isPublished: true
     })
-    .populate('instructor', 'firstName lastName')
-    .sort({ dueDate: 1 });
+      .populate('instructor', 'firstName lastName')
+      .sort({ dueDate: 1 });
 
     if (req.user.role === 'student' && assignments.length > 0) {
       const Submission = require('../models/Submission');
       const assignmentIds = assignments.map(a => a._id);
-      
+
       const submissions = await Submission.find({
         student: req.user._id,
         assignment: { $in: assignmentIds }
@@ -301,15 +303,34 @@ router.get('/course/:courseId', auth, async (req, res) => {
 // @route   GET /api/assignments/:id
 // @desc    Get single assignment
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+// @route   GET /api/assignments/:id
+// @desc    Get single assignment
+// @access  Public (if course is free) or Private
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
-      .populate('course', 'title courseCode')
+      .populate('course', 'title courseCode isFree instructor')
       .populate('instructor', 'firstName lastName');
 
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
     }
+
+    // Access Control
+    const isPublic = assignment.course.isFree;
+    const isInstructor = req.user && (req.user.role === 'admin' || assignment.course.instructor.toString() === req.user._id.toString());
+    const isStudent = req.user && req.user.role === 'student';
+
+    // If not public and not logged in, deny
+    if (!isPublic && !req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // If logged in student, verify enrollment (optional but good practice, currently assuming enrolled if they have ID)
+    // Actually, typically we check enrollment. But for simplicity and consistent behavior:
+    // If public -> Allow.
+    // If not public -> Require Auth.
+    // (Existing logic didn't strictly check enrollment for GET /:id, just Auth).
 
     res.json(assignment);
   } catch (error) {
@@ -353,7 +374,7 @@ router.put('/:id', [
 ], async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id);
-    
+
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
     }
@@ -408,7 +429,7 @@ router.delete('/:id', [
 ], async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id);
-    
+
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
     }

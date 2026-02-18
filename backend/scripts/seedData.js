@@ -2,8 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
 
-// Load environment variables
-dotenv.config();
+const path = require('path');
+
+// Load environment variables from root directory
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Import models
 const User = require('../models/User');
@@ -19,9 +21,9 @@ const createInstructorUser = async () => {
     // Check if instructor user already exists
     const instructorEmail = 'chendur@gmail.com';
     const instructorPassword = '12341234';
-    
+
     let user = await User.findOne({ email: instructorEmail });
-    
+
     if (user) {
       console.log('Instructor user already exists. Updating...');
       user.firstName = 'Teacher';
@@ -29,7 +31,7 @@ const createInstructorUser = async () => {
       user.password = instructorPassword; // Will be hashed by pre-save middleware
       user.isApproved = true;
       user.isActive = true;
-      
+
       // Ensure instructor profile exists
       if (!user.instructorProfile) {
         user.instructorProfile = {

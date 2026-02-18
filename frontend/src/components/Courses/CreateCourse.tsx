@@ -18,9 +18,11 @@ interface CourseFormData {
   credits: number;
   maxStudents: number;
   // fees removed
+  // fees removed
   category: string;
   level: '1st Year' | '2nd Year' | '3rd Year' | '4th Year';
   prerequisites: string[];
+  isFree: boolean;
 }
 
 const CreateCourse = () => {
@@ -35,9 +37,11 @@ const CreateCourse = () => {
     credits: 3,
     maxStudents: 30,
     // fees removed
+    // fees removed
     category: '',
     level: '1st Year',
-    prerequisites: []
+    prerequisites: [],
+    isFree: false
   });
 
 
@@ -105,8 +109,10 @@ const CreateCourse = () => {
       data.append('courseCode', formData.courseCode);
       data.append('credits', String(formData.credits));
       data.append('maxStudents', String(formData.maxStudents));
+      data.append('maxStudents', String(formData.maxStudents));
       data.append('category', formData.category);
       data.append('level', formData.level);
+      data.append('isFree', String(formData.isFree));
 
       cleanedPrerequisites.forEach((p) => {
         data.append('prerequisites[]', p); // Use [] for array
@@ -249,6 +255,24 @@ const CreateCourse = () => {
             </div>
 
             {/* Fees input removed */}
+
+            <div className="md:col-span-2">
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="isFree"
+                  checked={formData.isFree}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isFree: e.target.checked }))}
+                  className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <span className="text-gray-900 font-medium">
+                  Free Access Course
+                </span>
+              </label>
+              <p className="text-sm text-gray-500 mt-1 ml-8">
+                Check this box to make this course and its modules accessible to unauthenticated users.
+              </p>
+            </div>
           </div>
 
           <div className="mt-6">

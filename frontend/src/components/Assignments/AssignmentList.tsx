@@ -8,8 +8,11 @@ import {
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  FunnelIcon
+  FunnelIcon,
+  PencilIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import { formatDateTime, getTimeUntilDate, isValidDate } from '../../utils/dateUtils';
 import type { Assignment, Course } from '../../types';
@@ -70,6 +73,20 @@ const AssignmentList = () => {
       setCourses(response.data);
     } catch (error) {
       console.error('Error fetching courses:', error);
+    }
+  };
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation if wrapped in link
+    if (!window.confirm('Are you sure you want to delete this assignment?')) return;
+
+    try {
+      await axios.delete(`/api/assignments/${id}`);
+      setAssignments(prev => prev.filter(a => a._id !== id));
+      toast.success('Assignment deleted successfully');
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete assignment');
     }
   };
 
@@ -287,12 +304,30 @@ const AssignmentList = () => {
                   </Link>
 
                   {user?.role === 'instructor' && assignment.instructor === user._id && (
-                    <Link
-                      to={`/assignments/${assignment._id}/submissions`}
-                      className="btn btn-secondary"
-                    >
-                      View Submissions
-                    </Link>
+                    <>
+                      <Link
+                        to={`/assignments/${assignment._id}/submissions`}
+                        className="btn btn-secondary text-center"
+                      >
+                        View Submissions
+                      </Link>
+                      <div className="flex space-x-2">
+                        <Link
+                          to={`/assignments/edit/${assignment._id}`}
+                          className="btn btn-secondary flex-1 flex justify-center py-2"
+                          title="Edit Assignment"
+                        >
+                          <PencilIcon className="h-5 w-5 text-blue-600" />
+                        </Link>
+                        <button
+                          onClick={(e) => handleDelete(assignment._id, e)}
+                          className="btn btn-secondary flex-1 flex justify-center py-2"
+                          title="Delete Assignment"
+                        >
+                          <TrashIcon className="h-5 w-5 text-red-600" />
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

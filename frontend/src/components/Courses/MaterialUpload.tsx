@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
-import { 
+import {
   CloudArrowUpIcon,
   DocumentIcon,
   PlayIcon,
@@ -24,7 +24,23 @@ interface UploadFormData {
   isFree: boolean;
   file: File | null;
   url: string;
+  gdriveLink: string;
 }
+
+// Convert Google Drive sharing links to a direct preview/view link
+const normalizeGDriveLink = (link: string): string => {
+  // Match: https://drive.google.com/file/d/FILE_ID/...
+  const fileMatch = link.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (fileMatch) {
+    return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
+  }
+  // Match: https://drive.google.com/open?id=FILE_ID
+  const openMatch = link.match(/drive\.google\.com\/open\?id=([^&]+)/);
+  if (openMatch) {
+    return `https://drive.google.com/file/d/${openMatch[1]}/preview`;
+  }
+  return link; // Return as-is if format is unknown
+};
 
 const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadProps) => {
   const [uploading, setUploading] = useState(false);
@@ -34,7 +50,8 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
     description: '',
     isFree: false,
     file: null,
-    url: ''
+    url: '',
+    gdriveLink: ''
   });
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -45,7 +62,7 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
         toast.error('File size must be less than 100MB');
         return;
       }
-      
+
       setFormData({
         ...formData,
         file,
@@ -64,8 +81,8 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
         'Content-Type': 'multipart/form-data'
       },
       onUploadProgress: (progressEvent) => {
-        const progress = progressEvent.total 
-          ? (progressEvent.loaded / progressEvent.total) * 100 
+        const progress = progressEvent.total
+          ? (progressEvent.loaded / progressEvent.total) * 100
           : 0;
         console.log(`Upload progress: ${progress.toFixed(2)}%`);
       }
@@ -76,14 +93,14 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
       toast.error('Title is required');
       return;
     }
 
-    if (!formData.file && !formData.url.trim()) {
-      toast.error('Please either upload a file or provide a URL');
+    if (!formData.file && !formData.url.trim() && !formData.gdriveLink.trim()) {
+      toast.error('Please upload a file, provide a URL, or enter a Google Drive link');
       return;
     }
 
@@ -92,9 +109,14 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
     try {
       let materialUrl = formData.url;
       let filename = '';
+      let materialType = formData.type;
 
-      // Upload file if provided
-      if (formData.file) {
+      // Priority: GDrive link > File upload > Manual URL
+      if (formData.gdriveLink.trim()) {
+        materialUrl = normalizeGDriveLink(formData.gdriveLink.trim());
+        filename = '';
+        materialType = 'document';
+      } else if (formData.file) {
         materialUrl = await uploadFile(formData.file);
         filename = formData.file.name;
       }
@@ -102,7 +124,7 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
       // Create material entry
       const materialData = {
         title: formData.title.trim(),
-        type: formData.type,
+        type: materialType,
         url: materialUrl,
         filename,
         description: formData.description.trim(),
@@ -110,10 +132,10 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
       };
 
       await axios.post(`/api/courses/${courseId}/material`, materialData);
-      
+
       toast.success('Material uploaded successfully!');
       onUploadSuccess();
-    } catch (error:any) {
+    } catch (error: any) {
       console.error('Upload error:', error);
       toast.error(error.response?.data?.message || 'Failed to upload material');
     } finally {
@@ -134,7 +156,7 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
   return (
     <div className="card">
       <h3 className="text-lg font-semibold mb-4">Upload Course Material</h3>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Title */}
         <div>
@@ -149,6 +171,35 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
             placeholder="Enter material title"
             required
           />
+        </div>
+
+        {/* Google Drive Link */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Upload via Google Drive
+          </label>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <input
+                type="url"
+                value={formData.gdriveLink}
+                onChange={(e) => setFormData({ ...formData, gdriveLink: e.target.value, file: null })}
+                className="input pl-10"
+                placeholder="https://drive.google.com/file/d/.../view"
+              />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+                <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
+                <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
+                <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
+                <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
+                <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Paste a Google Drive sharing link. The file stays on Drive — nothing is uploaded to the server.
+          </p>
         </div>
 
         {/* Type */}
@@ -173,7 +224,7 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
           <label className="block text-sm font-medium text-gray-700">
             Content Source
           </label>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* File Upload */}
             <div>
@@ -263,14 +314,14 @@ const MaterialUpload = ({ courseId, onUploadSuccess, onCancel }: MaterialUploadP
               </label>
             </div>
           </div>
-          
+
           <div className="mt-3 p-3 bg-white rounded border">
             <div className="flex items-center space-x-2">
               <PreviewIcon className="h-5 w-5 text-gray-500" />
               <span className="font-medium">{formData.title || 'Material Title'}</span>
-            <p className="text-sm text-gray-600 mt-1 capitalize">{formData.type}</p>
+              <p className="text-sm text-gray-600 mt-1 capitalize">{formData.type}</p>
+            </div>
           </div>
-        </div>
         </div>
 
         {/* Actions */}

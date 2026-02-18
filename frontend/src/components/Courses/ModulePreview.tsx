@@ -48,6 +48,8 @@ import {
     DocumentIcon,
     LinkIcon,
     EyeIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import type { Module } from '../../types';
@@ -64,16 +66,26 @@ const ModulePreview = () => {
 
 
     // Auth Check
-    useEffect(() => {
-        if (!user) {
-            toast.error('Please login to view module content');
-            navigate('/login');
-        }
-    }, [user, navigate]);
+    // Auth Check - moved to useEffect that depends on module/course data to allow free access
+    // useEffect(() => {
+    //     if (!user) {
+    //         toast.error('Please login to view module content');
+    //         navigate('/login');
+    //     }
+    // }, [user, navigate]);
 
     // Assignment Logic
     const [completedAssignmentIds, setCompletedAssignmentIds] = useState<string[]>([]);
     const [allBlockingAssignmentsCompleted, setAllBlockingAssignmentsCompleted] = useState(false);
+    const [expandedSolutionIds, setExpandedSolutionIds] = useState<string[]>([]);
+
+    const toggleSolution = (assignId: string) => {
+        setExpandedSolutionIds(prev =>
+            prev.includes(assignId)
+                ? prev.filter(id => id !== assignId)
+                : [...prev, assignId]
+        );
+    };
 
     useEffect(() => {
         const fetchModule = async () => {
@@ -82,6 +94,13 @@ const ModulePreview = () => {
                 const res = await axios.get(`/api/courses/${courseId}`);
                 const course = res.data;
                 const foundModule = course.modules?.find((m: Module) => m._id === moduleId);
+
+                // Handle access control here
+                if (!user && !course.isFree) {
+                    toast.error('Please login to view module content');
+                    navigate('/login');
+                    return;
+                }
 
                 if (foundModule) {
                     setModule(foundModule);
@@ -139,7 +158,7 @@ const ModulePreview = () => {
             }
         };
 
-        if (courseId && moduleId && user) {
+        if (courseId && moduleId) {
             fetchModule();
         }
     }, [courseId, moduleId, user]);
@@ -167,13 +186,46 @@ const ModulePreview = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
             <div className="mb-8">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="mb-4 text-gray-500 hover:text-gray-700 flex items-center transition-colors"
-                >
-                    <ArrowLeftIcon className="w-5 h-5 mr-2" />
-                    Back to Course
-                </button>
+                <div className="mb-4 flex items-center justify-between">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="text-gray-500 hover:text-gray-700 flex items-center transition-colors"
+                    >
+                        <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                        Back to Course
+                    </button>
+
+                    {nextModuleId ? (
+                        <button
+                            onClick={() => {
+                                if (!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking) {
+                                    toast.error('Complete all assignments to proceed to the next module.');
+                                    return;
+                                }
+                                navigate(`/courses/${courseId}/modules/${nextModuleId}`);
+                                window.scrollTo(0, 0);
+                            }}
+                            disabled={!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking}
+                            className={`flex items-center transition-colors text-sm font-medium ${!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-blue-600 hover:text-blue-800'
+                                }`}
+                            title={
+                                !allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking
+                                    ? 'Complete all assignments to proceed'
+                                    : 'Next Module'
+                            }
+                        >
+                            Next Module
+                            <ArrowRightIcon className="ml-2 h-4 w-4" aria-hidden="true" />
+                        </button>
+                    ) : isLastModule ? (
+                        <div className="text-sm font-medium text-green-600 flex items-center">
+                            <span className="mr-2">🎉</span>
+                            Last Module
+                        </div>
+                    ) : null}
+                </div>
 
                 <div className="flex items-start justify-between">
                     <div>
@@ -297,7 +349,7 @@ const ModulePreview = () => {
 
                 <div className="lg:col-span-1 space-y-6">
                     {/* Assignments List */}
-                    {module.assignments && module.assignments.length > 0 && user && (
+                    {module.assignments && module.assignments.length > 0 && (
                         <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
                             <div className="px-6 py-4 border-b border-indigo-100 bg-indigo-50/50 flex justify-between items-center">
                                 <h2 className="text-lg font-semibold text-indigo-900 flex items-center gap-2">
@@ -321,27 +373,79 @@ const ModulePreview = () => {
                                     const assignId = assign._id || assign;
                                     const isCompleted = completedAssignmentIds.includes(assignId);
 
+                                    const isExpanded = expandedSolutionIds.includes(assignId);
+
                                     return (
-                                        <div key={idx} className="p-3 border border-gray-100 rounded-lg bg-gray-50/50">
-                                            <div className="flex justify-between items-start mb-2">
+                                        <div key={idx} className="p-3 border border-gray-100 rounded-lg bg-gray-50/50 transition-all hover:bg-gray-50">
+                                            <div className="flex justify-between items-start mb-1">
                                                 <h3 className="font-medium text-gray-900 text-sm">
                                                     {assign.title || 'Assignment'}
                                                 </h3>
                                                 {isCompleted ? (
-                                                    <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded border border-green-100">Done</span>
+                                                    <span className="text-[10px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded border border-green-200">DONE</span>
                                                 ) : (
-                                                    <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-100">To Do</span>
+                                                    <span className="text-[10px] text-amber-700 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-200">TO DO</span>
                                                 )}
                                             </div>
                                             <p className="text-xs text-gray-500 mb-3">
                                                 Due: {assign.dueDate ? new Date(assign.dueDate).toLocaleDateString() : 'No Due Date'}
                                             </p>
-                                            <button
-                                                onClick={() => navigate(`/assignments/${assignId}`)}
-                                                className={`w-full btn btn-sm ${isCompleted ? 'btn-secondary' : 'btn-primary'} text-xs justify-center`}
-                                            >
-                                                {isCompleted ? 'View Submission' : 'Start Assignment'}
-                                            </button>
+
+                                            {/* Assignment Files & Actions */}
+                                            <div className="space-y-2">
+                                                {/* Assignment Attachments */}
+                                                {assign.attachments && assign.attachments.length > 0 && (
+                                                    <div className="flex items-center justify-between text-xs bg-white p-2 rounded border border-gray-100">
+                                                        <span className="text-gray-600 truncate flex-1 mr-2">{assign.attachments[0].originalName}</span>
+                                                        <button
+                                                            onClick={() => {
+                                                                const path = assign.attachments[0].path;
+                                                                const url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
+                                                                window.open(url, '_blank');
+                                                            }}
+                                                            className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
+                                                            title="View Assignment"
+                                                        >
+                                                            <EyeIcon className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                )}
+
+
+                                                {/* Solution Dropdown */}
+                                                {(assign.solution && assign.solution.length > 0 && (assign.isSolutionVisible || user?.role === 'instructor')) && (
+                                                    <div className="mt-2">
+                                                        <button
+                                                            onClick={() => toggleSolution(assignId)}
+                                                            className="w-full flex items-center justify-between text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-100/50 p-2 rounded hover:bg-gray-100 transition-colors"
+                                                        >
+                                                            <span>Solution Key ({assign.solution.length})</span>
+                                                            {isExpanded ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
+                                                        </button>
+
+                                                        {isExpanded && (
+                                                            <div className="mt-1 space-y-1 animate-fadeIn">
+                                                                {assign.solution.map((sol: any, solIdx: number) => (
+                                                                    <div key={solIdx} className="flex items-center justify-between text-xs bg-green-50 p-2 rounded border border-green-100">
+                                                                        <span className="text-green-800 truncate flex-1 mr-2">{sol.originalName}</span>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const path = sol.url || sol.path;
+                                                                                const url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
+                                                                                window.open(url, '_blank');
+                                                                            }}
+                                                                            className="text-green-600 hover:text-green-800 p-1 hover:bg-green-100 rounded"
+                                                                            title="View Solution"
+                                                                        >
+                                                                            <EyeIcon className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -401,39 +505,6 @@ const ModulePreview = () => {
                         </div>
                     </div>
 
-                    {/* Navigation Buttons for Next Module */}
-                    <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
-                        {nextModuleId ? (
-                            <button
-                                onClick={() => {
-                                    if (!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking) {
-                                        // Optional: Shake effect or toast explanation
-                                        return;
-                                    }
-                                    navigate(`/courses/${courseId}/modules/${nextModuleId}`);
-                                    window.scrollTo(0, 0);
-                                }}
-                                disabled={!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking}
-                                className={`flex items-center transition-colors text-sm font-medium ${!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking
-                                    ? 'text-gray-400 cursor-not-allowed'
-                                    : 'text-gray-500 hover:text-gray-900'
-                                    }`}
-                                title={
-                                    !allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking
-                                        ? 'Complete all assignments to proceed'
-                                        : 'Next Module'
-                                }
-                            >
-                                Next Module
-                                <ArrowRightIcon className="ml-2 h-4 w-4" aria-hidden="true" />
-                            </button>
-                        ) : isLastModule ? (
-                            <div className="text-sm font-medium text-green-600 flex items-center">
-                                <span className="mr-2">🎉</span>
-                                You have completed this module
-                            </div>
-                        ) : null}
-                    </div>
                 </div>
 
 

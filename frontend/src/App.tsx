@@ -28,6 +28,7 @@ import MyEnrollments from './components/Enrollments/MyEnrollments';
 import AssignmentList from './components/Assignments/AssignmentList';
 import AssignmentDetail from './components/Assignments/AssignmentDetail';
 import CreateAssignment from './components/Assignments/CreateAssignment';
+import EditAssignment from './components/Assignments/EditAssignment';
 import AssignmentSubmissions from './components/Assignments/AssignmentSubmissions';
 
 import Messages from './components/Messages/Messages';
@@ -206,11 +207,9 @@ function App() {
             } />
 
             <Route path="/assignments/:id" element={
-              <ProtectedRoute>
-                <Layout>
-                  <AssignmentDetail />
-                </Layout>
-              </ProtectedRoute>
+              <Layout>
+                <AssignmentDetail />
+              </Layout>
             } />
 
             <Route path="/assignments/:id/submissions" element={
@@ -225,6 +224,14 @@ function App() {
               <ProtectedRoute allowedRoles={['instructor']}> {/* Removed admin */}
                 <Layout>
                   <CreateAssignment />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/assignments/edit/:id" element={
+              <ProtectedRoute allowedRoles={['instructor']}>
+                <Layout>
+                  <EditAssignment />
                 </Layout>
               </ProtectedRoute>
             } />

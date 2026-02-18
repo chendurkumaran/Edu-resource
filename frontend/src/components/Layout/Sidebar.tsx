@@ -11,9 +11,7 @@ import {
   ChatBubbleLeftIcon,
   UserGroupIcon,
   AcademicCapIcon,
-  PlusIcon,
-  SunIcon,
-  MoonIcon
+  PlusIcon
 } from '@heroicons/react/24/outline';
 
 interface NavigationItem {
@@ -122,17 +120,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user?.role}</p>
               </div>
             </div>
-            <button
-              onClick={toggleTheme}
-              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              aria-label="Toggle Dark Mode"
-            >
-              {theme === 'light' ? (
-                <MoonIcon className="h-5 w-5" />
-              ) : (
-                <SunIcon className="h-5 w-5" />
-              )}
-            </button>
           </div>
         </div>
       </div>

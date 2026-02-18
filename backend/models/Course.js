@@ -94,6 +94,10 @@ const courseSchema = new mongoose.Schema({
   thumbnailImage: {
     type: String,
     default: ''
+  },
+  isFree: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
@@ -106,7 +110,7 @@ courseSchema.index({ category: 1 });
 courseSchema.index({ isActive: 1, isApproved: 1 });
 
 // Virtual for enrollment status
-courseSchema.virtual('isFullyEnrolled').get(function() {
+courseSchema.virtual('isFullyEnrolled').get(function () {
   return this.currentEnrollment >= this.maxStudents;
 });
 

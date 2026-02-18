@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
+const Submission = require('../models/Submission');
 const { auth, authorize } = require('../middleware/auth');
 
 const router = express.Router();
@@ -113,7 +114,7 @@ router.get('/', [auth, authorize('instructor')], async (req, res) => {
 router.get('/:id/profile', [auth, authorize('instructor')], async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -124,7 +125,7 @@ router.get('/:id/profile', [auth, authorize('instructor')], async (req, res) => 
       const enrollments = await Enrollment.find({ student: user._id })
         .populate('course', 'title description levels')
         .sort({ enrollmentDate: -1 });
-      
+
       enrolledCourses = enrollments
         .filter(e => e.course) // Filter out null courses (deleted courses)
         .map(e => ({
@@ -266,5 +267,35 @@ router.put('/:id/decline', [auth, authorize('instructor')], async (req, res) => 
 });
 
 
+
+// @route   DELETE /api/users/:id
+// @desc    Permanently delete a deactivated user
+// @access  Private (Instructor only)
+router.delete('/:id', [auth, authorize('instructor')], async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Only allow deletion of deactivated users
+    if (user.isActive) {
+      return res.status(400).json({ message: 'User must be deactivated before deletion' });
+    }
+
+    // Clean up related data
+    await Enrollment.deleteMany({ student: user._id });
+    await Submission.deleteMany({ student: user._id });
+
+    // Delete the user
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'User deleted permanently' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ message: 'Server error while deleting user' });
+  }
+});
 
 module.exports = router;

@@ -265,6 +265,7 @@ const CourseDetail = () => {
         courseId={course._id || id || ''}
         completedAssignmentIds={completedAssignmentIds} // Pass to viewer
         userRole={user?.role} // Pass role
+        isFree={course.isFree}
       />
 
       {/* Prerequisites */}

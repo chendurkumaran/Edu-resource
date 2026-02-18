@@ -25,6 +25,19 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import type { CourseMaterial, Module, Assignment } from '../../types';
 import AssignmentForm from '../Assignments/AssignmentForm';
 
+// Convert Google Drive sharing links to a direct preview/view link
+const normalizeGDriveLink = (link: string): string => {
+  const fileMatch = link.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (fileMatch) {
+    return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
+  }
+  const openMatch = link.match(/drive\.google\.com\/open\?id=([^&]+)/);
+  if (openMatch) {
+    return `https://drive.google.com/file/d/${openMatch[1]}/preview`;
+  }
+  return link;
+};
+
 interface DraggableModuleProps {
   mod: Module;
   index: number;
@@ -220,12 +233,14 @@ const AddModule = () => {
     type: 'document' | 'video' | 'note' | 'link';
     url: string;
     description: string;
+    gdriveLink: string;
   }>({
     title: '',
     file: null,
     type: 'document',
     url: '',
-    description: ''
+    description: '',
+    gdriveLink: ''
   });
 
   const fetchCourseData = async () => {
@@ -308,15 +323,21 @@ const AddModule = () => {
       return;
     }
 
-    if (tempMaterial.type !== 'link' && !tempMaterial.file) {
-      toast.error('Please upload a file');
+    if (tempMaterial.type !== 'link' && !tempMaterial.file && !tempMaterial.gdriveLink.trim()) {
+      toast.error('Please upload a file or enter a Google Drive link');
       return;
     }
 
     let materialUrl = tempMaterial.url;
     let filename = '';
+    let materialType = tempMaterial.type;
 
-    if (tempMaterial.file) {
+    // Priority: GDrive link > File upload > Manual URL
+    if (tempMaterial.gdriveLink.trim()) {
+      materialUrl = normalizeGDriveLink(tempMaterial.gdriveLink.trim());
+      filename = '';
+      materialType = 'document';
+    } else if (tempMaterial.file) {
       const formData = new FormData();
       formData.append('file', tempMaterial.file);
       formData.append('type', 'course-material');
@@ -327,7 +348,7 @@ const AddModule = () => {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         toast.success('File uploaded', { id: 'upload' });
-        materialUrl = res.data.filePath; // Ensure backend returns absolute URL or we handle relative
+        materialUrl = res.data.filePath;
         filename = tempMaterial.file.name;
       } catch (err) {
         console.error(err);
@@ -338,14 +359,14 @@ const AddModule = () => {
 
     const newMaterial: CourseMaterial = {
       title: tempMaterial.title,
-      type: tempMaterial.type,
+      type: materialType,
       url: materialUrl,
       filename,
       description: tempMaterial.description
     };
 
     setMaterials([...materials, newMaterial]);
-    setTempMaterial({ title: '', file: null, type: 'document', url: '', description: '' });
+    setTempMaterial({ title: '', file: null, type: 'document', url: '', description: '', gdriveLink: '' });
     if (fileInputRef.current) fileInputRef.current.value = '';
     toast.success('Material added');
   };
@@ -406,7 +427,7 @@ const AddModule = () => {
     setModuleData({ title: '', description: '', duration: '', assignments: [], isAssignmentBlocking: true });
     setMarkdownContent('');
     setMaterials([]);
-    setTempMaterial({ title: '', file: null, type: 'document', url: '', description: '' });
+    setTempMaterial({ title: '', file: null, type: 'document', url: '', description: '', gdriveLink: '' });
   };
 
   const handleSaveModule = async () => {
@@ -609,6 +630,28 @@ const AddModule = () => {
                         onChange={(e) => setTempMaterial({ ...tempMaterial, title: e.target.value })} />
                     </div>
 
+                    {/* Google Drive Link */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Upload via Google Drive</label>
+                      <div className="relative">
+                        <input
+                          type="url"
+                          className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors pl-10"
+                          placeholder="https://drive.google.com/file/d/.../view"
+                          value={tempMaterial.gdriveLink}
+                          onChange={(e) => setTempMaterial({ ...tempMaterial, gdriveLink: e.target.value, file: null })} />
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+                          <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
+                          <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
+                          <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
+                          <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
+                          <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
+                        </svg>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1">Paste a Drive sharing link — file stays on Drive, nothing uploaded.</p>
+                    </div>
+
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Description (Optional)</label>
                       <textarea
@@ -727,12 +770,25 @@ const AddModule = () => {
                           <p className="text-xs text-gray-500 capitalize">{m.type} • {m.filename || 'URL'}</p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => removeMaterial(idx)}
-                        className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {m.url && (
+                          <a
+                            href={m.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-400 hover:text-blue-600 p-1 rounded-full hover:bg-blue-50 transition-colors"
+                            title="View document"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => removeMaterial(idx)}
+                          className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

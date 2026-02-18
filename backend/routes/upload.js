@@ -30,7 +30,7 @@ const materialStorage = multer.diskStorage({
         if (context === 'assignment-admin') {
             uploadPath = 'uploads/admin/assignments';
         } else if (context === 'assignment-student') {
-            uploadPath = 'uploads/students/assignments';
+            uploadPath = 'uploads/assignments';
         } else if (type === 'video') {
             uploadPath = 'uploads/videos';
         } else if (type === 'document' || type === 'pdf' || type === 'note') {

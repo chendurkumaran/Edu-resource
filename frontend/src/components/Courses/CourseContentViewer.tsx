@@ -23,6 +23,7 @@ interface CourseContentViewerProps {
     courseId: string;
     completedAssignmentIds?: Set<string>;
     userRole?: string;
+    isFree?: boolean;
 }
 
 const CourseContentViewer = ({
@@ -32,7 +33,8 @@ const CourseContentViewer = ({
     canEdit,
     courseId,
     completedAssignmentIds = new Set(),
-    userRole
+    userRole,
+    isFree = false
 }: CourseContentViewerProps) => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -48,7 +50,7 @@ const CourseContentViewer = ({
     };
 
     const canAccessMaterial = () => {
-        return isEnrolled || canEdit;
+        return isEnrolled || canEdit || isFree;
     };
 
     const MaterialItem = ({ material }: { material: CourseMaterial }) => {
@@ -62,7 +64,7 @@ const CourseContentViewer = ({
                     : 'border-gray-100 bg-gray-50'
                     }`}
                 onClick={() => {
-                    if (!user) {
+                    if (!user && !isFree) {
                         toast.error('Please login to view course content');
                         navigate('/login');
                         return;
@@ -178,7 +180,7 @@ const CourseContentViewer = ({
                                 <div
                                     key={module._id || mIdx}
                                     onClick={() => {
-                                        if (!user) {
+                                        if (!user && !isFree) {
                                             toast.error('Please login to view course content');
                                             navigate('/login');
                                             return;
@@ -188,15 +190,15 @@ const CourseContentViewer = ({
                                         }
                                     }}
                                     className={`group relative bg-white border rounded-xl p-6 transition-all ${isLocked
-                                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75'
-                                            : 'border-gray-200 hover:shadow-md cursor-pointer hover:border-blue-200'
+                                        ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75'
+                                        : 'border-gray-200 hover:shadow-md cursor-pointer hover:border-blue-200'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
                                             <div className={`h-12 w-12 rounded-lg flex items-center justify-center transition-colors ${isLocked
-                                                    ? 'bg-gray-100 text-gray-400'
-                                                    : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                                                ? 'bg-gray-100 text-gray-400'
+                                                : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
                                                 }`}>
                                                 {isLocked ? <LockClosedIcon className="h-6 w-6" /> : <DocumentIcon className="h-6 w-6" />}
                                             </div>
@@ -226,8 +228,8 @@ const CourseContentViewer = ({
                                         </div>
 
                                         <div className={`flex items-center transition-all ${isLocked
-                                                ? 'text-gray-400'
-                                                : 'text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1'
+                                            ? 'text-gray-400'
+                                            : 'text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1'
                                             }`}>
                                             {isLocked ? (
                                                 <span className="text-sm font-medium flex items-center">

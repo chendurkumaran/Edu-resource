@@ -23,6 +23,7 @@ interface CourseFormData {
   level: '1st Year' | '2nd Year' | '3rd Year' | '4th Year';
   prerequisites: string[];
   isActive: boolean;
+  isFree: boolean;
   thumbnailImage: string;
   materials: CourseMaterial[];
   modules: Module[];
@@ -44,6 +45,7 @@ const EditCourse = () => {
     level: '1st Year',
     prerequisites: [''],
     isActive: true,
+    isFree: false,
     thumbnailImage: '',
     materials: [],
     modules: []
@@ -77,12 +79,16 @@ const EditCourse = () => {
         prerequisites: course.prerequisites && course.prerequisites.length > 0 ? course.prerequisites : [''],
         isActive: true,
         thumbnailImage: course.thumbnailImage || '',
+        isFree: course.isFree || false,
         materials: course.materials || [],
         modules: course.modules || []
       });
       // Handle isActive explicitly if it's in the response but not strictly typed in frontend yet
       if ('isActive' in course) {
         setFormData(prev => ({ ...prev, isActive: (course as any).isActive }));
+      }
+      if ('isFree' in course) {
+        setFormData(prev => ({ ...prev, isFree: (course as any).isFree }));
       }
 
     } catch (error) {
@@ -381,6 +387,23 @@ const EditCourse = () => {
               </label>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-8">
                 Uncheck this to hide the course from the public course list.
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isFree}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isFree: e.target.checked }))}
+                  className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <span className="text-gray-700 dark:text-white font-medium">
+                  Free Access Course
+                </span>
+              </label>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-8">
+                Check this box to make this course and its modules accessible to unauthenticated users.
               </p>
             </div>
           </div>
