@@ -211,24 +211,24 @@ const EditCourse = () => {
       <div className="mb-6 flex items-center">
         <BackButton />
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Course</h1>
-          <p className="mt-1 text-gray-600 dark:text-gray-400">Update course details and settings</p>
+          <h1 className="text-2xl font-bold text-gray-900">Edit Course</h1>
+          <p className="mt-1 text-gray-600">Update course details and settings</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Course Thumbnail */}
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Course Thumbnail</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Course Thumbnail</h2>
           <div className="mt-2">
             {!formData.thumbnailImage ? (
-              <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md hover:border-primary-500 transition-colors duration-200">
+              <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-primary-500 transition-colors duration-200">
                 <div className="space-y-1 text-center">
                   <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex text-sm text-gray-600">
                     <label
                       htmlFor="thumbnail-upload"
-                      className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
                     >
                       <span>Upload a file</span>
                       <input
@@ -249,7 +249,7 @@ const EditCourse = () => {
               </div>
             ) : (
               <div className="mt-4">
-                <div className="relative h-48 w-full md:w-96 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group">
+                <div className="relative h-48 w-full md:w-96 rounded-lg overflow-hidden border border-gray-200 group">
                   <img
                     src={formData.thumbnailImage}
                     alt="Course Preview"
@@ -269,7 +269,7 @@ const EditCourse = () => {
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, thumbnailImage: '' }))}
-                  className="mt-2 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
                 >
                   Remove Image
                 </button>
@@ -281,7 +281,7 @@ const EditCourse = () => {
         <div className="card">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Course Title *
               </label>
               <input
@@ -290,24 +290,24 @@ const EditCourse = () => {
                 required
                 value={formData.title}
                 onChange={handleChange}
-                className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                className="input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Course Code (Read Only)
               </label>
               <input
                 type="text"
                 value={formData.courseCode}
                 disabled
-                className="input bg-gray-100 dark:bg-gray-600 dark:text-gray-300 cursor-not-allowed"
+                className="input bg-gray-100 cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category *
               </label>
               <select
@@ -315,7 +315,7 @@ const EditCourse = () => {
                 required
                 value={formData.category}
                 onChange={handleChange}
-                className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                className="input"
               >
                 <option value="">Select Category</option>
                 {categories.map(category => (
@@ -325,7 +325,7 @@ const EditCourse = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Level *
               </label>
               <select
@@ -333,7 +333,7 @@ const EditCourse = () => {
                 required
                 value={formData.level}
                 onChange={handleChange}
-                className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                className="input"
               >
                 <option value="1st Year">1st Year</option>
                 <option value="2nd Year">2nd Year</option>
@@ -343,7 +343,7 @@ const EditCourse = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Credits *
               </label>
               <input
@@ -354,12 +354,12 @@ const EditCourse = () => {
                 max="10"
                 value={formData.credits}
                 onChange={handleChange}
-                className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                className="input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Max Students *
               </label>
               <input
@@ -369,7 +369,7 @@ const EditCourse = () => {
                 min="1"
                 value={formData.maxStudents}
                 onChange={handleChange}
-                className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                className="input"
               />
             </div>
 
@@ -381,11 +381,11 @@ const EditCourse = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
                   className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <span className="text-gray-700 dark:text-white font-medium">
+                <span className="text-gray-700 font-medium">
                   Course is Visible to Students
                 </span>
               </label>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-8">
+              <p className="text-sm text-gray-500 mt-1 ml-8">
                 Uncheck this to hide the course from the public course list.
               </p>
             </div>
@@ -398,18 +398,18 @@ const EditCourse = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, isFree: e.target.checked }))}
                   className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <span className="text-gray-700 dark:text-white font-medium">
+                <span className="text-gray-700 font-medium">
                   Free Access Course
                 </span>
               </label>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-8">
+              <p className="text-sm text-gray-500 mt-1 ml-8">
                 Check this box to make this course and its modules accessible to unauthenticated users.
               </p>
             </div>
           </div>
 
           <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Description *
             </label>
             <textarea
@@ -418,7 +418,7 @@ const EditCourse = () => {
               rows={4}
               value={formData.description}
               onChange={handleChange}
-              className="input dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              className="input"
             />
           </div>
         </div>
@@ -426,7 +426,7 @@ const EditCourse = () => {
         {/* Course Modules */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Course Modules</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Course Modules</h2>
             <button
               type="button"
               onClick={() => navigate(`/courses/${id}/add-module`)}
@@ -472,7 +472,7 @@ const EditCourse = () => {
         {/* Prerequisites - Simplified for Edit */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Prerequisites</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Prerequisites</h2>
             <button
               type="button"
               onClick={addPrerequisite}
@@ -490,7 +490,7 @@ const EditCourse = () => {
                   type="text"
                   value={prereq}
                   onChange={(e) => handlePrerequisiteChange(index, e.target.value)}
-                  className="input flex-1 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  className="input flex-1"
                   placeholder="Enter prerequisite"
                 />
                 <button

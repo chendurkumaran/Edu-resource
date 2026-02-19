@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import { 
-  BookOpenIcon, 
-  DocumentTextIcon, 
+import {
+  BookOpenIcon,
+  DocumentTextIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
@@ -93,8 +93,8 @@ const StudentDashboard = () => {
                   <Icon className={`h-6 w-6 ${stat.color}`} />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.name}</p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stat.value}</p>
+                  <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
                 </div>
               </div>
             </Link>
@@ -106,23 +106,23 @@ const StudentDashboard = () => {
         {/* Upcoming Deadlines */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Upcoming Deadlines</h2>
-            <Link to="/assignments" className="text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
+            <h2 className="text-lg font-semibold text-gray-900">Upcoming Deadlines</h2>
+            <Link to="/assignments" className="text-sm text-primary-600 hover:text-primary-500">
               View all
             </Link>
           </div>
-          
+
           {upcomingDeadlines.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-4">No upcoming deadlines</p>
+            <p className="text-gray-500 text-center py-4">No upcoming deadlines</p>
           ) : (
             <div className="space-y-3">
               {upcomingDeadlines.map((assignment) => (
-                <div key={assignment._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div key={assignment._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">{assignment.title}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{assignment.course?.title}</p>
+                    <p className="font-medium text-gray-900">{assignment.title}</p>
+                    <p className="text-sm text-gray-600">{assignment.course?.title}</p>
                   </div>
-                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center text-sm text-gray-500">
                     <ClockIcon className="h-4 w-4 mr-1" />
                     {formatDateTime(assignment.dueDate)}
                   </div>

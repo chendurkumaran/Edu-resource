@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import { 
-  BookOpenIcon, 
-  UserGroupIcon, 
-  DocumentTextIcon, 
+import {
+  BookOpenIcon,
+  UserGroupIcon,
+  DocumentTextIcon,
   PlusIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
@@ -96,18 +96,18 @@ const InstructorDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link
           to="/create-course"
-          className="flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+          className="flex items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
         >
           <PlusIcon className="h-8 w-8 text-blue-600" />
-          <span className="ml-3 font-medium text-gray-900 dark:text-white">Create New Course</span>
+          <span className="ml-3 font-medium text-gray-900">Create New Course</span>
         </Link>
-        
+
         <Link
           to="/create-assignment"
-          className="flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+          className="flex items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
         >
           <PlusIcon className="h-8 w-8 text-green-600" />
-          <span className="ml-3 font-medium text-gray-900 dark:text-white">Create Assignment</span>
+          <span className="ml-3 font-medium text-gray-900">Create Assignment</span>
         </Link>
       </div>
 
@@ -122,8 +122,8 @@ const InstructorDashboard = () => {
                   <Icon className={`h-6 w-6 ${stat.color}`} />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.name}</p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stat.value}</p>
+                  <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
                 </div>
               </div>
             </div>
@@ -134,19 +134,19 @@ const InstructorDashboard = () => {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 gap-6">
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Enrollments</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Enrollments</h2>
           {dashboardData?.recentEnrollments?.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400">No recent enrollments.</p>
+            <p className="text-gray-500">No recent enrollments.</p>
           ) : (
             dashboardData?.recentEnrollments?.map((enrollment) => (
-              <div key={enrollment._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-2">
+              <div key={enrollment._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2">
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-gray-900">
                     {enrollment.student?.firstName} {enrollment.student?.lastName}
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{enrollment.course?.title}</p>
+                  <p className="text-sm text-gray-600">{enrollment.course?.title}</p>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500">
                   {formatDate(enrollment.enrollmentDate)}
                 </p>
               </div>

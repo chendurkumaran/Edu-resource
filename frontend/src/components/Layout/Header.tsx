@@ -129,7 +129,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+    <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
@@ -141,7 +141,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
               <Bars3Icon className="h-6 w-6" />
             </button>
 
-            <h1 className="ml-4 text-xl font-semibold text-gray-900 dark:text-white">
+            <h1 className="ml-4 text-xl font-semibold text-gray-900">
               {location.pathname === '/' ? 'Dashboard' : location.pathname.split('/')[1].charAt(0).toUpperCase() + location.pathname.split('/')[1].slice(1)}
             </h1>
           </div>
@@ -151,7 +151,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
               <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
+                  className="text-sm font-medium text-gray-700 hover:text-gray-900"
                 >
                   Log in
                 </Link>
@@ -185,10 +185,10 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                   >
-                    <Menu.Items className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <Menu.Items className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                      <div className="p-4 border-b border-gray-200">
                         <div className="flex justify-between items-center">
-                          <h3 className="text-lg font-medium dark:text-gray-200">Notifications</h3>
+                          <h3 className="text-lg font-medium">Notifications</h3>
                           {unreadCount > 0 && (
                             <button
                               onClick={markAllAsRead}
@@ -209,13 +209,13 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                           notifications.slice(0, 5).map((notification) => (
                             <Menu.Item key={notification._id}>
                               <div
-                                className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${!notification.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                                className={`p-4 hover:bg-gray-50 cursor-pointer ${!notification.isRead ? 'bg-blue-50' : ''}`}
                                 onClick={() => handleNotificationClick(notification)}
                               >
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                <p className="text-sm font-medium text-gray-900">
                                   {notification.title}
                                 </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                <p className="text-sm text-gray-600 mt-1">
                                   {notification.message}
                                 </p>
                                 <p className="text-xs text-gray-400 mt-2">
@@ -232,9 +232,9 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 
                 {/* User Menu */}
                 <Menu as="div" className="relative">
-                  <Menu.Button className="flex items-center space-x-2 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <Menu.Button className="flex items-center space-x-2 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
                     <UserCircleIcon className="h-6 w-6" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <span className="text-sm font-medium text-gray-700">
                       {user?.firstName} {user?.lastName}
                     </span>
                   </Menu.Button>
@@ -248,14 +248,14 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                   >
-                    <Menu.Items className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                    <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                       <div className="py-1">
                         <Menu.Item>
                           {({ active }) => (
                             <Link
                               to="/profile"
-                              className={`${active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                } block px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
+                              className={`${active ? 'bg-gray-100' : ''
+                                } block px-4 py-2 text-sm text-gray-700`}
                             >
                               Your Profile
                             </Link>
@@ -265,8 +265,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                           {({ active }) => (
                             <button
                               onClick={logout}
-                              className={`${active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                } block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
+                              className={`${active ? 'bg-gray-100' : ''
+                                } block w-full text-left px-4 py-2 text-sm text-gray-700`}
                             >
                               Sign out
                             </button>

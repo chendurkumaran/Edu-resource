@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
+
 
 // Layout Components
 import Layout from './components/Layout/Layout';
@@ -95,191 +95,189 @@ function App() {
 
   return (
     <Router>
-      <ThemeProvider>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/home" element={<HomePage />} /> {/* Moved to /home */}
-            <Route path="/" element={ // Root is now Dashboard/CourseList (Publicly accessible)
+      <div className="min-h-screen bg-gray-50 transition-colors duration-200">
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/home" element={<HomePage />} /> {/* Moved to /home */}
+          <Route path="/" element={ // Root is now Dashboard/CourseList (Publicly accessible)
+            <Layout>
+              {getDashboard()}
+            </Layout>
+          } />
+
+          <Route path="/login" element={
+            <PublicRoute>
+              <PublicLayout>
+                <Login />
+              </PublicLayout>
+            </PublicRoute>
+          } />
+          <Route path="/register" element={
+            <PublicRoute>
+              <PublicLayout>
+                <Register />
+              </PublicLayout>
+            </PublicRoute>
+          } />
+
+
+          <Route path="/courses" element={
+            <Layout>
+              <CourseList />
+            </Layout>
+          } />
+
+          <Route path="/courses/:id" element={
+            <Layout>
+              <CourseDetail />
+            </Layout>
+          } />
+
+          <Route path="/courses/:id/materials" element={
+            <ProtectedRoute allowedRoles={['instructor']}>
               <Layout>
-                {getDashboard()}
+                <CourseMaterials />
               </Layout>
-            } />
+            </ProtectedRoute>
+          } />
 
-            <Route path="/login" element={
-              <PublicRoute>
-                <PublicLayout>
-                  <Login />
-                </PublicLayout>
-              </PublicRoute>
-            } />
-            <Route path="/register" element={
-              <PublicRoute>
-                <PublicLayout>
-                  <Register />
-                </PublicLayout>
-              </PublicRoute>
-            } />
-
-
-            <Route path="/courses" element={
+          <Route path="/courses/:id/modules" element={
+            <ProtectedRoute allowedRoles={['instructor']}>
               <Layout>
-                <CourseList />
+                <ManageModules />
               </Layout>
-            } />
+            </ProtectedRoute>
+          } />
 
-            <Route path="/courses/:id" element={
+          <Route path="/courses/:id/modules/:moduleId" element={
+            <Layout>
+              <ModulePreview />
+            </Layout>
+          } />
+
+
+
+
+          <Route path="/courses/edit/:id" element={
+            <ProtectedRoute allowedRoles={['instructor']}>
               <Layout>
-                <CourseDetail />
+                <EditCourse />
               </Layout>
-            } />
+            </ProtectedRoute>
+          } />
 
-            <Route path="/courses/:id/materials" element={
-              <ProtectedRoute allowedRoles={['instructor']}>
-                <Layout>
-                  <CourseMaterials />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/courses/:id/modules" element={
-              <ProtectedRoute allowedRoles={['instructor']}>
-                <Layout>
-                  <ManageModules />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/courses/:id/modules/:moduleId" element={
+          <Route path="/create-course" element={
+            <ProtectedRoute allowedRoles={['instructor']}> {/* Removed admin */}
               <Layout>
-                <ModulePreview />
+                <CreateCourse />
               </Layout>
-            } />
+            </ProtectedRoute>
+          } />
 
-
-
-
-            <Route path="/courses/edit/:id" element={
-              <ProtectedRoute allowedRoles={['instructor']}>
-                <Layout>
-                  <EditCourse />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/create-course" element={
-              <ProtectedRoute allowedRoles={['instructor']}> {/* Removed admin */}
-                <Layout>
-                  <CreateCourse />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/courses/:id/add-module" element={
-              <ProtectedRoute allowedRoles={['instructor']}>
-                <Layout>
-                  <AddModule />
-                </Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/courses/:id/modules/:moduleId/edit" element={
-              <ProtectedRoute allowedRoles={['instructor']}>
-                <Layout>
-                  <AddModule />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/my-courses" element={
-              <ProtectedRoute allowedRoles={['student']}>
-                <Layout>
-                  <MyEnrollments />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/assignments" element={
-              <ProtectedRoute>
-                <Layout>
-                  <AssignmentList />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/assignments/:id" element={
+          <Route path="/courses/:id/add-module" element={
+            <ProtectedRoute allowedRoles={['instructor']}>
               <Layout>
-                <AssignmentDetail />
+                <AddModule />
               </Layout>
-            } />
+            </ProtectedRoute>
+          } />
+          <Route path="/courses/:id/modules/:moduleId/edit" element={
+            <ProtectedRoute allowedRoles={['instructor']}>
+              <Layout>
+                <AddModule />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-            <Route path="/assignments/:id/submissions" element={
-              <ProtectedRoute allowedRoles={['instructor']}>
-                <Layout>
-                  <AssignmentSubmissions />
-                </Layout>
-              </ProtectedRoute>
-            } />
+          <Route path="/my-courses" element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <Layout>
+                <MyEnrollments />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-            <Route path="/create-assignment" element={
-              <ProtectedRoute allowedRoles={['instructor']}> {/* Removed admin */}
-                <Layout>
-                  <CreateAssignment />
-                </Layout>
-              </ProtectedRoute>
-            } />
+          <Route path="/assignments" element={
+            <ProtectedRoute>
+              <Layout>
+                <AssignmentList />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-            <Route path="/assignments/edit/:id" element={
-              <ProtectedRoute allowedRoles={['instructor']}>
-                <Layout>
-                  <EditAssignment />
-                </Layout>
-              </ProtectedRoute>
-            } />
+          <Route path="/assignments/:id" element={
+            <Layout>
+              <AssignmentDetail />
+            </Layout>
+          } />
+
+          <Route path="/assignments/:id/submissions" element={
+            <ProtectedRoute allowedRoles={['instructor']}>
+              <Layout>
+                <AssignmentSubmissions />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/create-assignment" element={
+            <ProtectedRoute allowedRoles={['instructor']}> {/* Removed admin */}
+              <Layout>
+                <CreateAssignment />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/assignments/edit/:id" element={
+            <ProtectedRoute allowedRoles={['instructor']}>
+              <Layout>
+                <EditAssignment />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
 
 
-            <Route path="/messages" element={
-              <ProtectedRoute>
-                <Layout>
-                  <Messages />
-                </Layout>
-              </ProtectedRoute>
-            } />
+          <Route path="/messages" element={
+            <ProtectedRoute>
+              <Layout>
+                <Messages />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Layout>
-                  <Profile />
-                </Layout>
-              </ProtectedRoute>
-            } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Layout>
+                <Profile />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-            <Route path="/users" element={
-              <ProtectedRoute allowedRoles={['instructor']}>
-                <Layout>
-                  <UserManagement />
-                </Layout>
-              </ProtectedRoute>
-            } />
+          <Route path="/users" element={
+            <ProtectedRoute allowedRoles={['instructor']}>
+              <Layout>
+                <UserManagement />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-            {/* Default Route
+          {/* Default Route
             <Route path="/" element={
               user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
             } /> */}
 
-            {/* 404 Route */}
-            <Route path="*" element={
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-4xl font-bold text-gray-900">404</h1>
-                  <p className="text-gray-600 mt-2">Page not found</p>
-                </div>
+          {/* 404 Route */}
+          <Route path="*" element={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-4xl font-bold text-gray-900">404</h1>
+                <p className="text-gray-600 mt-2">Page not found</p>
               </div>
-            } />
-          </Routes>
-        </div>
-      </ThemeProvider>
-    </Router>
+            </div>
+          } />
+        </Routes>
+      </div>
+    </Router >
   );
 }
 

@@ -13,10 +13,10 @@ const BackButton = () => {
         <button
             type="button"
             onClick={() => navigate(backPath)}
-            className="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="mr-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
             title="Go Back"
         >
-            <ArrowLeftIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+            <ArrowLeftIcon className="h-6 w-6 text-gray-600" />
         </button>
     );
 };

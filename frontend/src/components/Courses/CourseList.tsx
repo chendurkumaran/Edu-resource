@@ -147,8 +147,8 @@ const CourseList = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Courses</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+          <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
+          <p className="mt-2 text-gray-600">
             Discover and enroll in courses that match your interests
           </p>
         </div>
@@ -165,67 +165,19 @@ const CourseList = () => {
       </div>
 
       {/* Search and Filters */}
-      {/* <div className="card">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search courses..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input pl-10 dark:text-white dark:bg-gray-700 dark:border-gray-600"
-            />
-          </div>
-
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="input dark:text-white dark:bg-gray-700 dark:border-gray-600"
-          >
-            <option value="">All Categories</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value)}
-            className="input dark:text-white dark:bg-gray-700 dark:border-gray-600"
-          >
-            <option value="">All Levels</option>
-            {levels.map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </select>
-
-          <button
-            onClick={clearFilters}
-            className="btn btn-secondary flex items-center justify-center"
-          >
-            <FunnelIcon className="h-5 w-5 mr-2" />
-            Clear Filters
-          </button>
-        </div>
-      </div> */}
+      {/* Search and Filters - Removed as per clean up */}
 
       {/* Course Grid */}
       {courses.length === 0 ? (
         <div className="text-center py-12">
           <BookOpenIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No courses found</h3>
-          <p className="text-gray-600 dark:text-gray-400">Try adjusting your search criteria</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No courses found</h3>
+          <p className="text-gray-600">Try adjusting your search criteria</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course) => (
-            <div key={course._id} className={`card hover:shadow-md transition-shadow duration-200 ${course.isActive === false ? 'opacity-75 bg-gray-50 dark:bg-gray-800/50' : ''}`}>
+            <div key={course._id} className={`card hover:shadow-md transition-shadow duration-200 ${course.isActive === false ? 'opacity-75 bg-gray-50' : ''}`}>
               {/* Course Image */}
               <div className="h-48 rounded-lg mb-4 overflow-hidden relative">
                 {course.thumbnailImage ? (
@@ -244,29 +196,29 @@ const CourseList = () => {
               {/* Course Info */}
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2">
+                  <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
                     {course.title}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{course.courseCode}</p>
+                  <p className="text-sm text-gray-600 mt-1">{course.courseCode}</p>
                   {!course.isApproved && (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mt-1 mr-2">
                       Pending Approval
                     </span>
                   )}
                   {course.isActive === false && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 mt-1">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700 mt-1">
                       <EyeSlashIcon className="w-3 h-3 mr-1" />
                       Hidden from Students
                     </span>
                   )}
                 </div>
 
-                <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3">
+                <p className="text-gray-600 text-sm line-clamp-3">
                   {course.description}
                 </p>
 
                 {/* Course Details */}
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center">
                     <UserIcon className="h-4 w-4 mr-2" />
                     {course.instructor?.firstName} {course.instructor?.lastName}
@@ -280,7 +232,7 @@ const CourseList = () => {
 
                 {/* Enrollment Status */}
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">
+                  <span className="text-gray-600">
                     {course.currentEnrollment}/{course.maxStudents} enrolled
                   </span>
                   <span className={`px-2 py-1 rounded-full text-xs ${course.level === '1st Year' ? 'bg-green-100 text-green-800' :
@@ -342,10 +294,10 @@ const CourseList = () => {
 
                 {/* Instructor Actions */}
                 {user?.role === 'instructor' && user._id === course.instructor?._id && (
-                  <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-100 dark:border-gray-700 mt-2">
+                  <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-100 mt-2">
                     <button
                       onClick={() => handleToggleVisibility(course._id, course.isActive ?? true)}
-                      className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
+                      className="p-2 text-gray-500 hover:text-primary-600"
                       title={course.isActive ?? true ? "Hide from students" : "Show to students"}
                     >
                       {course.isActive ?? true ? (
@@ -356,7 +308,7 @@ const CourseList = () => {
                     </button>
                     <Link
                       to={`/courses/edit/${course._id}`}
-                      className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+                      className="p-2 text-gray-500 hover:text-blue-600"
                       title="Edit Course"
                     >
                       <PencilIcon className="h-5 w-5" />
@@ -367,7 +319,7 @@ const CourseList = () => {
                           handleDeleteCourse(course._id);
                         }
                       }}
-                      className="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                      className="p-2 text-gray-500 hover:text-red-600"
                       title="Delete Course"
                     >
                       <TrashIcon className="h-5 w-5" />
@@ -392,7 +344,7 @@ const CourseList = () => {
             </button>
           )}
 
-          <span className="flex items-center px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
+          <span className="flex items-center px-4 py-2 text-sm text-gray-600">
             Page {pagination.current} of {pagination.pages}
           </span>
 
