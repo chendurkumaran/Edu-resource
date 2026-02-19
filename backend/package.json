@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "build": "echo Backend build completed successfully",
     "create-admin": "node scripts/seedData.js"
   },
   "dependencies": {

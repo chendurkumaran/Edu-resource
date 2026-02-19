@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-
+import { useTheme } from '../../context/ThemeContext';
 import { Dialog, Transition } from '@headlessui/react';
 import {
   XMarkIcon,
@@ -28,6 +28,7 @@ interface SidebarProps {
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
 
   const getNavigationItems = (): NavigationItem[] => {
