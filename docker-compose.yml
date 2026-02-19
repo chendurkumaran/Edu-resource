@@ -1,14 +1,32 @@
-version: '3.8'
-
+version: '3'
 services:
+  backend:
+    build:
+      context: ./backend
+    env_file: .env
+    ports:
+      - "5000:5000"
+    networks:
+      - mern-network
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - mern-network
+
   mongo:
-    image: mongodb/mongodb-community-server:latest
-    container_name: edu_mongo
+    image: mongo:latest
     ports:
       - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    restart: always
-    
-volumes:
-  mongo_data:
+    networks:
+      - mern-network
+
+networks:
+  mern-network:
+    driver: bridge
