@@ -109,7 +109,6 @@ const CreateCourse = () => {
       data.append('courseCode', formData.courseCode);
       data.append('credits', String(formData.credits));
       data.append('maxStudents', String(formData.maxStudents));
-      data.append('maxStudents', String(formData.maxStudents));
       data.append('category', formData.category);
       data.append('level', formData.level);
       data.append('isFree', String(formData.isFree));

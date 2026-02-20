@@ -579,11 +579,17 @@ router.post('/', [
       thumbnailImage = `${baseUrl}/${req.file.path.replace(/\\/g, '/')}`;
     }
 
-    // Create course
+    // Create course — explicitly extract and parse fields to avoid FormData array issues
     const courseData = {
-      ...req.body,
-      instructor: req.user._id,
+      title: req.body.title,
+      description: req.body.description,
       courseCode: req.body.courseCode.toUpperCase(),
+      credits: parseInt(Array.isArray(req.body.credits) ? req.body.credits[0] : req.body.credits),
+      maxStudents: parseInt(Array.isArray(req.body.maxStudents) ? req.body.maxStudents[0] : req.body.maxStudents),
+      category: req.body.category,
+      level: req.body.level,
+      prerequisites: req.body.prerequisites || req.body['prerequisites[]'] || [],
+      instructor: req.user._id,
       isApproved: true, // Courses are automatically approved
       thumbnailImage, // Add the image URL
       isFree: req.body.isFree === 'true' || req.body.isFree === true

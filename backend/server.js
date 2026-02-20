@@ -3,10 +3,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 const rateLimit = require('express-rate-limit');
 
-// Load environment variables from root directory
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// Load environment variables - try parent dir .env first, then cwd, or rely on injected env vars (Docker)
+const envPath = path.resolve(__dirname, '../.env');
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+} else {
+  dotenv.config(); // fallback: tries .env in cwd, otherwise uses process.env as-is
+}
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -29,7 +35,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:5174',
-    'http://localhost:5175/',
+    'http://localhost:5175',
     process.env.CLIENT_URL
   ].filter(Boolean),
   credentials: true
@@ -105,7 +111,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 
     // Start server
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       if (process.env.NODE_ENV === 'development') {

@@ -1,11 +1,16 @@
-version: '3'
 services:
   backend:
     build:
       context: ./backend
     env_file: .env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/edu-resource
+    volumes:
+      - ./.env:/usr/src/.env:ro
     ports:
       - "5000:5000"
+    depends_on:
+      - mongo
     networks:
       - mern-network
 
@@ -17,6 +22,8 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    depends_on:
+      - backend
     networks:
       - mern-network
 
@@ -24,9 +31,14 @@ services:
     image: mongo:latest
     ports:
       - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
     networks:
       - mern-network
 
 networks:
   mern-network:
     driver: bridge
+
+volumes:
+  mongo-data:

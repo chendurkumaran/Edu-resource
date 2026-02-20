@@ -74,11 +74,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const response = await axios.post('/api/auth/login', { email, password });
       const { token, user } = response.data;
-      
+
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
-      
+
       toast.success('Login successful!');
       return { success: true };
     } catch (error: any) {
@@ -92,11 +92,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const response = await axios.post('/api/auth/register', userData);
       const { token, user, needsDocuments } = response.data;
-      
+
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
-      
+
       toast.success('Registration successful!');
       return { success: true, needsDocuments };
     } catch (error: any) {
@@ -119,8 +119,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const response = await axios.get('http://localhost:5000/api/auth/me');
-        setUser(response.data);
+        const response = await axios.get('/api/auth/me');
+        setUser(response.data.user);
       } catch (error) {
         console.error('Error refreshing user data:', error);
       }
