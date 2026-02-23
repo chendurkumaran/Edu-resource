@@ -9,9 +9,9 @@ const rateLimit = require('express-rate-limit');
 // Load environment variables - try parent dir .env first, then cwd, or rely on injected env vars (Docker)
 const envPath = path.resolve(__dirname, '../.env');
 if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath });
+  require('dotenv').config({ path: envPath });
 } else {
-  dotenv.config(); // fallback: tries .env in cwd, otherwise uses process.env as-is
+  require('dotenv').config(); // fallback: tries .env in cwd, otherwise uses process.env as-is
 }
 
 // Import routes

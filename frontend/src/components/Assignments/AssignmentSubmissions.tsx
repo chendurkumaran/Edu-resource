@@ -226,7 +226,7 @@ const AssignmentSubmissions = () => {
                               const path = submission.attachments![0].path;
                               return path.startsWith('http')
                                 ? path
-                                : `http://localhost:5000/${path.replace(/^\\|\\\\/, '')}`;
+                                : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/${path.replace(/^\\|\\\\/, '')}`;
                             })()}
                             target="_blank"
                             rel="noreferrer"

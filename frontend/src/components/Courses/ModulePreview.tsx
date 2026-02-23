@@ -400,7 +400,7 @@ const ModulePreview = () => {
                                                         <button
                                                             onClick={() => {
                                                                 const path = assign.attachments[0].path;
-                                                                const url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
+                                                                const url = path.startsWith('http') ? path : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${path}`;
                                                                 window.open(url, '_blank');
                                                             }}
                                                             className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
@@ -431,7 +431,7 @@ const ModulePreview = () => {
                                                                         <button
                                                                             onClick={() => {
                                                                                 const path = sol.url || sol.path;
-                                                                                const url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
+                                                                                const url = path.startsWith('http') ? path : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${path}`;
                                                                                 window.open(url, '_blank');
                                                                             }}
                                                                             className="text-green-600 hover:text-green-800 p-1 hover:bg-green-100 rounded"

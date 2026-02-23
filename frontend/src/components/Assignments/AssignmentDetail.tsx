@@ -302,7 +302,7 @@ const AssignmentDetail = () => {
                     <button
                       onClick={() => {
                         const path = attachment.path;
-                        const url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
+                        const url = path.startsWith('http') ? path : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${path}`;
                         window.open(url, '_blank');
                       }}
                       className="btn btn-secondary btn-sm p-2"
@@ -311,7 +311,7 @@ const AssignmentDetail = () => {
                       <EyeIcon className="h-4 w-4" />
                     </button>
                     <a
-                      href={attachment.path.startsWith('http') ? attachment.path : `http://localhost:5000${attachment.path}`}
+                      href={attachment.path.startsWith('http') ? attachment.path : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${attachment.path}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-secondary btn-sm"
@@ -355,7 +355,7 @@ const AssignmentDetail = () => {
                     <button
                       onClick={() => {
                         const path = sol.url || sol.path;
-                        const url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
+                        const url = path.startsWith('http') ? path : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${path}`;
                         window.open(url, '_blank');
                       }}
                       className="btn bg-white border border-green-200 text-green-700 hover:bg-green-100 btn-sm p-2"
@@ -365,7 +365,7 @@ const AssignmentDetail = () => {
                     </button>
                     {sol.type !== 'link' && (
                       <a
-                        href={sol.path.startsWith('http') ? sol.path : `http://localhost:5000${sol.path}`}
+                        href={sol.path.startsWith('http') ? sol.path : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${sol.path}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn bg-white border border-green-200 text-green-700 hover:bg-green-100 btn-sm"
