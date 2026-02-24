@@ -121,10 +121,7 @@ if (!dbUri.startsWith('mongodb://') && !dbUri.startsWith('mongodb+srv://')) {
 const maskedUri = dbUri.replace(/\/\/.*@/, '//****:****@');
 console.log('Attempting to connect to MongoDB with URI:', maskedUri);
 
-mongoose.connect(dbUri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(dbUri)
   .then(() => {
     console.log('Connected to MongoDB');
     console.log('Database URI:', maskedUri);

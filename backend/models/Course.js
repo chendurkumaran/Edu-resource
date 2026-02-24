@@ -104,7 +104,6 @@ const courseSchema = new mongoose.Schema({
 });
 
 // Indexes for better performance
-courseSchema.index({ courseCode: 1 });
 courseSchema.index({ instructor: 1 });
 courseSchema.index({ category: 1 });
 courseSchema.index({ isActive: 1, isApproved: 1 });

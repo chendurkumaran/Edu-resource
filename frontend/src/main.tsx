@@ -7,14 +7,14 @@ import { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 
 // Set default axios baseURL
-axios.defaults.baseURL = '${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}';
+axios.defaults.baseURL = `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}`;
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 root.render(
   <React.StrictMode>
     <AuthProvider>
       <App />
-      <Toaster 
+      <Toaster
         position="top-right"
         toastOptions={{
           duration: 4000,
