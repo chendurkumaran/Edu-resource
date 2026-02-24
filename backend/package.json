@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "npm install && node scripts/seedData.js",
+    "build": "npm install",
     "create-admin": "node scripts/seedData.js"
   },
   "dependencies": {
