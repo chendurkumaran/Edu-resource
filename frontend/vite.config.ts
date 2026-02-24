@@ -8,7 +8,7 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
-    allowedHosts: ['edu-resource.up.railway.app'],
+    allowedHosts: ['edu-resource-frontend.onrender.com'],
   },
   build: {
     chunkSizeWarningLimit: 1000,
