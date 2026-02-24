@@ -9,10 +9,13 @@ const rateLimit = require('express-rate-limit');
 // Load environment variables
 dotenv.config(); // Load .env from current working directory
 
-// Fallback: Check one level up if not found (useful for some dev setups)
-if (!process.env.MONGO_URI) {
+// Fallback: Check one level up if not found
+if (!process.env.MONGO_URI && !process.env.MONGODB_URI) {
   dotenv.config({ path: path.join(__dirname, '../.env') });
 }
+
+// Normalize URI variable
+const dbUri = (process.env.MONGO_URI || process.env.MONGODB_URI || '').trim();
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -101,13 +104,30 @@ app.use('*', (req, res) => {
 });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, {
+if (!dbUri) {
+  console.error('CRITICAL ERROR: No MongoDB connection string found.');
+  console.error('Please set MONGO_URI or MONGODB_URI environment variable.');
+  process.exit(1);
+}
+
+if (!dbUri.startsWith('mongodb://') && !dbUri.startsWith('mongodb+srv://')) {
+  console.error('CRITICAL ERROR: Invalid MongoDB connection string format.');
+  console.error('URI must start with "mongodb://" or "mongodb+srv://".');
+  console.error('Current URI starts with:', dbUri.substring(0, 10) + '...');
+  process.exit(1);
+}
+
+// Diagnostic Log (Obfuscated)
+const maskedUri = dbUri.replace(/\/\/.*@/, '//****:****@');
+console.log('Attempting to connect to MongoDB with URI:', maskedUri);
+
+mongoose.connect(dbUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
   .then(() => {
     console.log('Connected to MongoDB');
-    console.log('Database URI:', process.env.MONGO_URI);
+    console.log('Database URI:', maskedUri);
 
     // Start server
     const PORT = process.env.PORT || 5000;

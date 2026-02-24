@@ -15,8 +15,16 @@ if (!process.env.MONGO_URI) {
 // Import models
 const User = require('../models/User');
 
+// Normalize URI variable
+const dbUri = (process.env.MONGO_URI || process.env.MONGODB_URI || '').trim();
+
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, {
+if (!dbUri) {
+  console.error('Error: No MongoDB connection string found (MONGO_URI or MONGODB_URI is undefined)');
+  process.exit(1);
+}
+
+mongoose.connect(dbUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
