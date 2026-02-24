@@ -101,13 +101,13 @@ app.use('*', (req, res) => {
 });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
   .then(() => {
     console.log('Connected to MongoDB');
-    console.log('Database URI:', process.env.MONGODB_URI);
+    console.log('Database URI:', process.env.MONGO_URI);
 
     // Start server
     const PORT = process.env.PORT || 5000;

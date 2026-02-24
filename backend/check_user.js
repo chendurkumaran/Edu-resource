@@ -3,7 +3,7 @@ const User = require('./models/User'); // Updated path
 const path = require('path');
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('Connected to DB');
 
