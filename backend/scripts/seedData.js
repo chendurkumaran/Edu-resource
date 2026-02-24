@@ -4,8 +4,13 @@ const dotenv = require('dotenv');
 
 const path = require('path');
 
-// Load environment variables from root directory
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// Load environment variables
+dotenv.config();
+
+// Fallback: Check root directory if not found
+if (!process.env.MONGO_URI) {
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+}
 
 // Import models
 const User = require('../models/User');

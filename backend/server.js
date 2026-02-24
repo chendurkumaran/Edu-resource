@@ -6,12 +6,12 @@ const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
 
-// Load environment variables - try parent dir .env first, then cwd, or rely on injected env vars (Docker)
-const envPath = path.resolve(__dirname, '../.env');
-if (fs.existsSync(envPath)) {
-  require('dotenv').config({ path: envPath });
-} else {
-  require('dotenv').config(); // fallback: tries .env in cwd, otherwise uses process.env as-is
+// Load environment variables
+dotenv.config(); // Load .env from current working directory
+
+// Fallback: Check one level up if not found (useful for some dev setups)
+if (!process.env.MONGO_URI) {
+  dotenv.config({ path: path.join(__dirname, '../.env') });
 }
 
 // Import routes
