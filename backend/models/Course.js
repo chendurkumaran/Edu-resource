@@ -42,8 +42,7 @@ const courseSchema = new mongoose.Schema({
   // fees field removed
   category: {
     type: String,
-    required: [true, 'Category is required'],
-    enum: ['Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'History', 'Arts', 'Business', 'Other']
+    required: [true, 'Category is required']
   },
   level: {
     type: String,

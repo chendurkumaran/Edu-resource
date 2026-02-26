@@ -26,15 +26,24 @@ const router = express.Router();
  *         description: List of assignments
  */
 // @route   GET /api/assignments
-// @desc    Get assignments for current user
-// @access  Private
-router.get('/', auth, async (req, res) => {
+// @desc    Get assignments for current user or all published assignments if public
+// @access  Public or Private
+router.get('/', optionalAuth, async (req, res) => {
   try {
     let assignments;
 
+    if (!req.user) {
+      // Public view: show all published assignments
+      assignments = await Assignment.find({ isPublished: true })
+        .populate('course', 'title courseCode')
+        .populate('instructor', 'firstName lastName')
+        .sort({ dueDate: 1 });
+      return res.json(assignments);
+    }
+
     if (req.user.role === 'student') {
       // Get assignments from enrolled courses
-      const Enrollment = require('../models/Enrollment'); // Fixed: Move require inside function
+      const Enrollment = require('../models/Enrollment');
       const enrollments = await Enrollment.find({
         student: req.user._id,
         status: 'enrolled'
@@ -50,7 +59,7 @@ router.get('/', auth, async (req, res) => {
         .populate('instructor', 'firstName lastName')
         .sort({ dueDate: 1 });
     } else {
-      // Instructors get their own assignments
+      // Instructors get their own assignments (both published and draft)
       assignments = await Assignment.find({ instructor: req.user._id })
         .populate('course', 'title courseCode')
         .sort({ dueDate: 1 });
@@ -247,17 +256,24 @@ router.post('/', [
  */
 // @route   GET /api/assignments/course/:courseId
 // @desc    Get assignments for a course
-// @access  Private
-router.get('/course/:courseId', auth, async (req, res) => {
+// @access  Public or Private
+router.get('/course/:courseId', optionalAuth, async (req, res) => {
   try {
-    let assignments = await Assignment.find({
-      course: req.params.courseId,
-      isPublished: true
-    })
+    // If not logged in, or if logged in student, they only see published assignments.
+    // If logged in instructor looking at their own course, they see ALL assignments (even drafts).
+    let query = { course: req.params.courseId };
+
+    if (!req.user || req.user.role === 'student') {
+      query.isPublished = true;
+    } else if (req.user.role === 'instructor') {
+      // Instructor sees all their own assignments for this course
+      query.instructor = req.user._id;
+    }
+
+    let assignments = await Assignment.find(query)
       .populate('instructor', 'firstName lastName')
       .sort({ dueDate: 1 });
-
-    if (req.user.role === 'student' && assignments.length > 0) {
+    if (req.user && req.user.role === 'student' && assignments.length > 0) {
       const Submission = require('../models/Submission');
       const assignmentIds = assignments.map(a => a._id);
 
