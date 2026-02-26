@@ -42,6 +42,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       return [
         { name: 'Dashboard', href: '/', icon: HomeIcon },
         { name: 'Courses', href: '/courses', icon: BookOpenIcon },
+        { name: 'Assignments', href: '/assignments', icon: DocumentTextIcon },
       ];
     }
 

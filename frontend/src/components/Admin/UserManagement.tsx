@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   UserGroupIcon,
@@ -6,7 +6,8 @@ import {
   FunnelIcon,
   XMarkIcon,
   AcademicCapIcon,
-  TrashIcon
+  TrashIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -25,6 +26,27 @@ const UserManagement = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [allCourses, setAllCourses] = useState<any[]>([]); // To populate dropdown
   const [selectedCourseId, setSelectedCourseId] = useState('');
+  // Dropdown state
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const roleDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenActionId(null);
+      }
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(e.target as Node)) {
+        setShowRoleDropdown(false);
+      }
+    };
+    if (openActionId || showRoleDropdown) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [openActionId, showRoleDropdown]);
+
 
   useEffect(() => {
     fetchUsers();
@@ -213,15 +235,47 @@ const UserManagement = () => {
       <div className="card">
         <div className="flex items-center space-x-4">
           <FunnelIcon className="h-5 w-5 text-gray-400" />
-          <select
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
-            className="input max-w-xs"
-          >
-            <option value="">All Roles</option>
-            <option value="student">Students</option>
-            <option value="instructor">Instructors</option>
-          </select>
+          <div ref={roleDropdownRef} className="relative w-48">
+            <button
+              type="button"
+              onClick={() => setShowRoleDropdown(o => !o)}
+              className="input w-full flex items-center justify-between text-left gap-2"
+            >
+              <span className={selectedRole ? 'text-gray-900 capitalize' : 'text-gray-400'}>
+                {selectedRole ? selectedRole + 's' : 'All Roles'}
+              </span>
+              <ChevronDownIcon
+                className={`h-4 w-4 text-gray-400 transition-transform duration-150 ${showRoleDropdown ? 'rotate-180' : ''}`}
+              />
+            </button>
+            {showRoleDropdown && (
+              <div className="absolute z-40 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedRole(''); setShowRoleDropdown(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${selectedRole === '' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-500'}`}
+                  >
+                    All Roles
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedRole('student'); setShowRoleDropdown(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors ${selectedRole === 'student' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-900'}`}
+                  >
+                    Students
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedRole('instructor'); setShowRoleDropdown(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors ${selectedRole === 'instructor' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-900'}`}
+                  >
+                    Instructors
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setSelectedRole('')}
             className="btn btn-secondary"
@@ -289,36 +343,21 @@ const UserManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {formatDate(user.enrollmentDate)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    {user.isActive ? (
-                      <button
-                        onClick={() => deactivateUser(user._id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Deactivate
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => activateUser(user._id)}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          Activate
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user._id)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Permanently delete user"
-                        >
-                          <TrashIcon className="h-5 w-5 inline" />
-                        </button>
-                      </>
-                    )}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
-                      onClick={() => handleEditClick(user)}
-                      className="text-indigo-600 hover:text-indigo-900"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (openActionId === user._id) {
+                          setOpenActionId(null);
+                          return;
+                        }
+                        const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                        setDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX });
+                        setOpenActionId(user._id);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
                     >
-                      Edit
+                      Actions <ChevronDownIcon className="h-3.5 w-3.5" />
                     </button>
                   </td>
                 </tr>
@@ -496,7 +535,53 @@ const UserManagement = () => {
           </div>
         )
       }
-    </div >
+      {/* Fixed-position Actions dropdown — escapes overflow-x-auto */}
+      {openActionId && dropdownPos && (() => {
+        const activeUser = users.find(u => u._id === openActionId);
+        if (!activeUser) return null;
+        return (
+          <div
+            ref={dropdownRef}
+            style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+            className="w-44 bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-10 divide-y divide-gray-100 animate-fadeIn"
+          >
+            <div className="py-1">
+              <button
+                onClick={() => { handleEditClick(activeUser); setOpenActionId(null); }}
+                className="flex w-full items-center px-4 py-2.5 text-sm text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 transition-colors"
+              >
+                Edit User
+              </button>
+            </div>
+            <div className="py-1">
+              {activeUser.isActive ? (
+                <button
+                  onClick={() => { deactivateUser(activeUser._id); setOpenActionId(null); }}
+                  className="flex w-full items-center px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-800 transition-colors"
+                >
+                  Deactivate
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => { activateUser(activeUser._id); setOpenActionId(null); }}
+                    className="flex w-full items-center px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 hover:text-green-800 transition-colors"
+                  >
+                    Activate
+                  </button>
+                  <button
+                    onClick={() => { handleDeleteUser(activeUser._id); setOpenActionId(null); }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-800 transition-colors"
+                  >
+                    <TrashIcon className="h-4 w-4" /> Delete
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+    </div>
   );
 };
 

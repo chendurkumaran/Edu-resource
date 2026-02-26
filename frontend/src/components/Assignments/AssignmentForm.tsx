@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import { PlusIcon, TrashIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import type { Course, RubricItem, Assignment } from '../../types';
 
@@ -20,7 +20,9 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
     const [loading, setLoading] = useState(false);
     const [courses, setCourses] = useState<Course[]>([]);
     const [materialsGdriveLink, setMaterialsGdriveLink] = useState('');
+    const [materialsGdriveTitle, setMaterialsGdriveTitle] = useState('');
     const [solutionGdriveLink, setSolutionGdriveLink] = useState('');
+    const [solutionGdriveTitle, setSolutionGdriveTitle] = useState('');
 
     interface FormData {
         title: string;
@@ -29,18 +31,13 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
         type: string;
         totalPoints: number;
         dueDate: string;
-        submissionType: string;
-        allowedFileTypes: string[];
-        maxFileSize: number;
         instructions: string;
         isPublished: boolean;
-        allowLateSubmission: boolean;
-        latePenalty: number;
         rubric: RubricItem[];
         attachments: { originalName: string; path: string; mimetype: string; type?: string; url?: string }[];
         solution: { originalName: string; path: string; mimetype: string; type?: string; url?: string }[];
         isSolutionVisible: boolean;
-        hasNoDueDate?: boolean; // New field
+        hasNoDueDate?: boolean;
     }
 
     const [formData, setFormData] = useState<FormData>({
@@ -50,14 +47,9 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
         type: 'homework',
         totalPoints: 100,
         dueDate: '',
-        hasNoDueDate: false, // New field
-        submissionType: 'both',
-        allowedFileTypes: ['pdf', 'doc', 'docx'],
-        maxFileSize: 10485760, // 10MB
+        hasNoDueDate: false,
         instructions: '',
         isPublished: true,
-        allowLateSubmission: true,
-        latePenalty: 10,
         rubric: [],
         attachments: [],
         solution: [],
@@ -95,18 +87,13 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
             setFormData({
                 title: assignment.title,
                 description: assignment.description,
-                courseId: assignment.course._id || assignment.course, // Handle populated or ID
+                courseId: assignment.course._id || assignment.course,
                 type: assignment.type,
                 totalPoints: assignment.totalPoints,
                 dueDate: formattedDate,
                 hasNoDueDate: !assignment.dueDate,
-                submissionType: assignment.submissionType,
-                allowedFileTypes: assignment.allowedFileTypes || [],
-                maxFileSize: assignment.maxFileSize,
                 instructions: assignment.instructions || '',
                 isPublished: assignment.isPublished,
-                allowLateSubmission: assignment.allowLateSubmission,
-                latePenalty: assignment.latePenalty || 0,
                 rubric: assignment.rubric || [],
                 attachments: assignment.attachments || [],
                 solution: assignment.solution || [],
@@ -141,83 +128,6 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
         }
     };
 
-    const handleFileTypeChange = (fileType: string, checked: boolean) => {
-        setFormData(prev => ({
-            ...prev,
-            allowedFileTypes: checked
-                ? [...prev.allowedFileTypes, fileType]
-                : prev.allowedFileTypes.filter(type => type !== fileType)
-        }));
-    };
-
-    const uploadFile = async (file: File, context: 'assignment-admin' | 'assignment-student') => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('type', 'document');
-        formData.append('context', context);
-
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.post('/api/upload', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return {
-                originalName: response.data.originalName,
-                filename: response.data.filename,
-                path: response.data.filePath,
-                mimetype: response.data.mimetype
-            };
-        } catch (error) {
-            console.error('Upload failed:', error);
-            toast.error(`Failed to upload ${file.name}`);
-            throw error;
-        }
-    };
-
-    const handleAssignmentFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files) return;
-        const files = Array.from(e.target.files);
-
-        setLoading(true);
-        try {
-            const uploadedAttachments = await Promise.all(
-                files.map(file => uploadFile(file, 'assignment-admin'))
-            );
-
-            setFormData(prev => ({
-                ...prev,
-                attachments: [...(prev.attachments || []), ...uploadedAttachments]
-            }));
-            toast.success('Files uploaded successfully');
-        } catch (error) {
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSolutionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || e.target.files.length === 0) return;
-        const files = Array.from(e.target.files);
-
-        setLoading(true);
-        try {
-            const uploadedSolutions = await Promise.all(
-                files.map(file => uploadFile(file, 'assignment-admin'))
-            );
-            setFormData(prev => ({
-                ...prev,
-                solution: [...(prev.solution || []), ...uploadedSolutions]
-            }));
-            toast.success(`${files.length} solution file(s) uploaded successfully`);
-        } catch (error) {
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const removeAttachment = (index: number) => {
         setFormData(prev => ({
             ...prev,
@@ -246,7 +156,7 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
         setFormData(prev => ({
             ...prev,
             attachments: [...(prev.attachments || []), {
-                originalName: 'Google Drive Link',
+                originalName: materialsGdriveTitle.trim() || 'Google Drive Link',
                 path: materialsGdriveLink,
                 url: materialsGdriveLink,
                 mimetype: 'application/x-google-drive-link',
@@ -254,6 +164,7 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
             }]
         }));
         setMaterialsGdriveLink('');
+        setMaterialsGdriveTitle('');
         toast.success('Google Drive link added');
     };
 
@@ -271,7 +182,7 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
         setFormData(prev => ({
             ...prev,
             solution: [...(prev.solution || []), {
-                originalName: 'Google Drive Link',
+                originalName: solutionGdriveTitle.trim() || 'Google Drive Link',
                 path: solutionGdriveLink,
                 url: solutionGdriveLink,
                 mimetype: 'application/x-google-drive-link',
@@ -279,6 +190,7 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
             }]
         }));
         setSolutionGdriveLink('');
+        setSolutionGdriveTitle('');
         toast.success('Solution Google Drive link added');
     };
 
@@ -328,7 +240,6 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
             const payload = {
                 ...formData,
                 dueDate: formData.hasNoDueDate ? null : new Date(formData.dueDate).toISOString(),
-                allowedFileTypes: formData.allowedFileTypes,
                 rubric: formData.rubric,
                 attachments: formData.attachments,
                 solution: formData.solution,
@@ -359,16 +270,6 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
             setLoading(false);
         }
     };
-
-    const fileTypes = [
-        { value: 'pdf', label: 'PDF' },
-        { value: 'doc', label: 'DOC' },
-        { value: 'docx', label: 'DOCX' },
-        { value: 'txt', label: 'TXT' },
-        { value: 'jpg', label: 'JPG' },
-        { value: 'png', label: 'PNG' },
-        { value: 'zip', label: 'ZIP' }
-    ];
 
     const getMinDateTime = () => {
         const minTime = new Date();
@@ -454,59 +355,13 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
                 </div>
             </div>
 
-            {/* Submission Settings */}
+            {/* Publish Setting only */}
             <div className={`card ${embedded ? 'border-none shadow-none p-0 border-t pt-6 rounded-none' : ''}`}>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Submission Settings</h2>
-                <div className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Submission Type</label>
-                        <select name="submissionType" value={formData.submissionType} onChange={handleChange} className="input">
-                            <option value="file">File Upload Only</option>
-                            <option value="text">Text Submission Only</option>
-                            <option value="both">Both File and Text</option>
-                        </select>
-                    </div>
-
-                    {formData.submissionType !== 'text' && (
-                        <>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Allowed File Types</label>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    {fileTypes.map(type => (
-                                        <label key={type.value} className="flex items-center">
-                                            <input type="checkbox" checked={formData.allowedFileTypes.includes(type.value)} onChange={(e) => handleFileTypeChange(type.value, e.target.checked)} className="rounded border-gray-300 text-primary-600" />
-                                            <span className="ml-2 text-sm">{type.label}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Max File Size (MB)</label>
-                                <input type="number" name="maxFileSize" min="1" max="100" value={Math.round(formData.maxFileSize / 1024 / 1024)} onChange={(e) => setFormData(prev => ({ ...prev, maxFileSize: parseInt(e.target.value) * 1024 * 1024 }))} className="input" />
-                            </div>
-                        </>
-                    )}
-
-                    <div className="flex items-center space-x-4">
-                        <label className="flex items-center">
-                            <input type="checkbox" name="allowLateSubmission" checked={formData.allowLateSubmission} onChange={handleChange} className="rounded border-gray-300 text-primary-600" />
-                            <span className="ml-2 text-sm">Allow Late Submissions</span>
-                        </label>
-                        {formData.allowLateSubmission && (
-                            <div className="flex items-center space-x-2">
-                                <label className="text-sm">Penalty per day:</label>
-                                <input type="number" name="latePenalty" min="0" max="100" value={formData.latePenalty} onChange={handleChange} className="input w-20" />
-                                <span className="text-sm">%</span>
-                            </div>
-                        )}
-                    </div>
-                    <div>
-                        <label className="flex items-center">
-                            <input type="checkbox" name="isPublished" checked={formData.isPublished} onChange={handleChange} className="rounded border-gray-300 text-primary-600" />
-                            <span className="ml-2 text-sm">Publish immediately</span>
-                        </label>
-                    </div>
-                </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
+                <label className="flex items-center">
+                    <input type="checkbox" name="isPublished" checked={formData.isPublished} onChange={handleChange} className="rounded border-gray-300 text-primary-600" />
+                    <span className="ml-2 text-sm">Publish immediately</span>
+                </label>
             </div>
 
             {/* Assignment Files */}
@@ -515,61 +370,58 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
                 <div className="space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Assignment Materials</label>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                            <div className="text-center">
-                                <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                <input type="file" multiple onChange={handleAssignmentFileChange} className="hidden" id="assignment-files" />
-                                <label htmlFor="assignment-files" className="btn btn-secondary cursor-pointer">Choose Files</label>
-                                <p className="text-sm text-gray-600 mt-2">Upload reference materials, templates, or instructions</p>
-                            </div>
-                        </div>
 
                         {/* Google Drive Link for Materials */}
-                        <div className="mt-4">
-                            <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Upload via Google Drive</label>
-                            <div className="flex items-center gap-2">
-                                <div className="relative flex-1">
-                                    <input
-                                        type="url"
-                                        className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors pl-10"
-                                        placeholder="https://drive.google.com/file/d/.../view"
-                                        value={materialsGdriveLink}
-                                        onChange={(e) => setMaterialsGdriveLink(e.target.value)}
-                                    />
-                                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
-                                        <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
-                                        <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
-                                        <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
-                                        <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
-                                        <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
-                                    </svg>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Add via Google Drive Link</label>
+                            <div className="flex flex-col gap-2">
+                                <input
+                                    type="text"
+                                    className="input text-sm w-full bg-white"
+                                    placeholder="Document Title (e.g. Assignment Instructions)"
+                                    value={materialsGdriveTitle}
+                                    onChange={(e) => setMaterialsGdriveTitle(e.target.value)}
+                                />
+                                <div className="flex items-center gap-2">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="url"
+                                            className="input text-sm w-full bg-white pl-10"
+                                            placeholder="https://drive.google.com/file/d/.../view"
+                                            value={materialsGdriveLink}
+                                            onChange={(e) => setMaterialsGdriveLink(e.target.value)}
+                                        />
+                                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+                                            <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
+                                            <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
+                                            <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
+                                            <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
+                                            <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
+                                        </svg>
+                                    </div>
+                                    <button type="button" onClick={addMaterialsGdriveLink} className="btn btn-secondary btn-sm whitespace-nowrap">Add Link</button>
                                 </div>
-                                <button type="button" onClick={addMaterialsGdriveLink} className="btn btn-secondary btn-sm whitespace-nowrap">Add Link</button>
                             </div>
-                            <p className="text-[10px] text-gray-400 mt-1">Paste a Drive sharing link — file stays on Drive, nothing uploaded.</p>
+                            <p className="text-[10px] text-gray-400 mt-1">Enter a title then paste a Drive sharing link.</p>
                         </div>
 
                         {formData.attachments.length > 0 && (
                             <div className="mt-4">
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">Uploaded Files & Links:</h4>
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">Assignment Materials ({formData.attachments.length}):</h4>
                                 <ul className="space-y-2">
                                     {formData.attachments.map((file, index) => (
-                                        <li key={index} className={`flex items-center justify-between p-3 rounded-lg ${file.type === 'link' ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50'}`}>
+                                        <li key={index} className="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-100">
                                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                {file.type === 'link' ? (
-                                                    <svg className="w-4 h-4 text-blue-500 flex-shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
-                                                        <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
-                                                        <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
-                                                        <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
-                                                        <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
-                                                        <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
-                                                    </svg>
-                                                ) : null}
-                                                <span className={`text-sm truncate ${file.type === 'link' ? 'text-blue-800' : 'text-gray-600'}`}>
-                                                    {file.type === 'link' ? (file.url || file.path) : file.originalName}
-                                                </span>
+                                                <svg className="w-4 h-4 text-blue-500 flex-shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+                                                    <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
+                                                    <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
+                                                    <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
+                                                    <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
+                                                    <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
+                                                </svg>
+                                                <span className="text-sm truncate text-blue-800 font-medium">{file.originalName || 'Google Drive Link'}</span>
                                             </div>
                                             <button type="button" onClick={() => removeAttachment(index)} className="text-red-600 hover:text-red-800 flex-shrink-0 ml-2"><TrashIcon className="h-4 w-4" /></button>
                                         </li>
@@ -580,39 +432,40 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
                     </div>
                     <div className="pt-4 border-t border-gray-200">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Answer/Solution Key</label>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                            <div className="text-center">
-                                <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                <input type="file" multiple onChange={handleSolutionFileChange} className="hidden" id="solution-file" />
-                                <label htmlFor="solution-file" className="btn btn-secondary cursor-pointer">Choose Solution Files</label>
-                                <p className="text-sm text-gray-600 mt-2">Upload the answer key or solution PDF</p>
-                            </div>
-                        </div>
 
                         {/* Google Drive Link for Solution */}
-                        <div className="mt-4">
-                            <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Upload via Google Drive</label>
-                            <div className="flex items-center gap-2">
-                                <div className="relative flex-1">
-                                    <input
-                                        type="url"
-                                        className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors pl-10"
-                                        placeholder="https://drive.google.com/file/d/.../view"
-                                        value={solutionGdriveLink}
-                                        onChange={(e) => setSolutionGdriveLink(e.target.value)}
-                                    />
-                                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
-                                        <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
-                                        <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
-                                        <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
-                                        <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
-                                        <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
-                                    </svg>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Add via Google Drive Link</label>
+                            <div className="flex flex-col gap-2">
+                                <input
+                                    type="text"
+                                    className="input text-sm w-full bg-white"
+                                    placeholder="Solution Title (e.g. Week 1 Solution Key)"
+                                    value={solutionGdriveTitle}
+                                    onChange={(e) => setSolutionGdriveTitle(e.target.value)}
+                                />
+                                <div className="flex items-center gap-2">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="url"
+                                            className="input text-sm w-full bg-white pl-10"
+                                            placeholder="https://drive.google.com/file/d/.../view"
+                                            value={solutionGdriveLink}
+                                            onChange={(e) => setSolutionGdriveLink(e.target.value)}
+                                        />
+                                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+                                            <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
+                                            <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
+                                            <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
+                                            <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
+                                            <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
+                                        </svg>
+                                    </div>
+                                    <button type="button" onClick={addSolutionGdriveLink} className="btn btn-secondary btn-sm whitespace-nowrap">Add Link</button>
                                 </div>
-                                <button type="button" onClick={addSolutionGdriveLink} className="btn btn-secondary btn-sm whitespace-nowrap">Add Link</button>
                             </div>
-                            <p className="text-[10px] text-gray-400 mt-1">Paste a Drive sharing link — file stays on Drive, nothing uploaded.</p>
+                            <p className="text-[10px] text-gray-400 mt-1">Enter a title then paste a Drive sharing link.</p>
                         </div>
 
                         {formData.solution && formData.solution.length > 0 && (
@@ -620,21 +473,17 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
                                 <h4 className="text-sm font-medium text-gray-700 mb-2">Solutions ({formData.solution.length}):</h4>
                                 <ul className="space-y-2">
                                     {formData.solution.map((sol, index) => (
-                                        <li key={index} className={`flex items-center justify-between p-3 rounded-lg border ${sol.type === 'link' ? 'bg-blue-50 border-blue-100' : 'bg-green-50 border-green-100'}`}>
+                                        <li key={index} className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-100">
                                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                {sol.type === 'link' ? (
-                                                    <svg className="w-4 h-4 text-blue-500 flex-shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
-                                                        <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
-                                                        <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
-                                                        <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
-                                                        <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
-                                                        <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
-                                                    </svg>
-                                                ) : null}
-                                                <span className={`text-sm truncate ${sol.type === 'link' ? 'text-blue-800' : 'text-green-800'}`}>
-                                                    {sol.type === 'link' ? (sol.url || sol.path) : sol.originalName}
-                                                </span>
+                                                <svg className="w-4 h-4 text-green-600 flex-shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+                                                    <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
+                                                    <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
+                                                    <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
+                                                    <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
+                                                    <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
+                                                </svg>
+                                                <span className="text-sm truncate text-green-800 font-medium">{sol.originalName || 'Google Drive Link'}</span>
                                             </div>
                                             <button type="button" onClick={() => removeSolution(index)} className="text-red-600 hover:text-red-800 flex-shrink-0 ml-2"><TrashIcon className="h-4 w-4" /></button>
                                         </li>
@@ -642,13 +491,7 @@ const AssignmentForm = ({ initialCourseId, assignmentId, onSuccess, onCancel, em
                                 </ul>
                             </div>
                         )}
-                        <div className="mt-4">
-                            <label className="flex items-center">
-                                <input type="checkbox" name="isSolutionVisible" checked={formData.isSolutionVisible} onChange={handleChange} className="rounded border-gray-300 text-primary-600" />
-                                <span className="ml-2 text-sm">Make solution visible to students immediately</span>
-                            </label>
-                            <p className="text-xs text-gray-500 mt-1 ml-6">If unchecked, you can enable this later after the due date.</p>
-                        </div>
+
                     </div>
                 </div>
             </div>

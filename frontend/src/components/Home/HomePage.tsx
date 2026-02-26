@@ -94,13 +94,6 @@ const HomePage = () => {
       bg: 'bg-indigo-100'
     },
     {
-      icon: DocumentCheckIcon,
-      title: 'Document Verification',
-      description: 'Secure instructor credential verification with automated approval workflows.',
-      color: 'text-teal-600',
-      bg: 'bg-teal-100'
-    },
-    {
       icon: BellIcon,
       title: 'Smart Notifications',
       description: 'Stay updated with real-time notifications for deadlines and announcements.',
@@ -120,50 +113,6 @@ const HomePage = () => {
     'Cloud-based storage and backup'
   ];
 
-  const pricingPlans = [
-    {
-      name: 'Student',
-      price: 'Free',
-      description: 'Perfect for individual students',
-      features: [
-        'Course enrollment',
-        'Assignment submissions',
-        'Direct messaging with instructors',
-        'Mobile access'
-      ],
-      cta: 'Get Started',
-      popular: false
-    },
-    {
-      name: 'Instructor',
-      price: 'Free*',
-      description: 'For educators and teachers',
-      features: [
-        'Create unlimited courses',
-        'Assignment creation',
-        'Student analytics',
-        'Document verification required',
-        'Priority support'
-      ],
-      cta: 'Start Teaching',
-      popular: true
-    },
-    {
-      name: 'Institution',
-      price: 'Contact Us',
-      description: 'For schools and universities',
-      features: [
-        'Unlimited users',
-        'Advanced analytics',
-        'User management dashboard',
-        'Course approval workflow',
-        'System administration',
-        'Custom training'
-      ],
-      cta: 'Contact Sales',
-      popular: false
-    }
-  ];
 
   const testimonials = [
     {
@@ -194,11 +143,6 @@ const HomePage = () => {
 
   const securityFeatures = [
     {
-      icon: ShieldCheckIcon,
-      title: 'Enterprise Security',
-      description: 'Bank-grade encryption and security protocols'
-    },
-    {
       icon: CloudIcon,
       title: 'Cloud Infrastructure',
       description: '99.9% uptime with automatic backups'
@@ -217,36 +161,36 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
       <nav className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <BookOpenIcon className="h-8 w-8 text-primary-600" />
-              <span className="ml-2 text-2xl font-bold text-gray-900">Edu-Resource</span>
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-14 sm:h-16 items-center">
+            <div className="flex items-center min-w-0">
+              <BookOpenIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary-600 flex-shrink-0" />
+              <span className="ml-1.5 text-lg sm:text-2xl font-bold text-gray-900 truncate">Edu-Resource</span>
             </div>
 
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-700 hover:text-primary-600">Features</a>
-              <a href="#pricing" className="text-gray-700 hover:text-primary-600">Pricing</a>
               <a href="#testimonials" className="text-gray-700 hover:text-primary-600">Reviews</a>
               <a href="#security" className="text-gray-700 hover:text-primary-600">Security</a>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               {user ? (
-                <div className="flex items-center space-x-4">
-                  <span className="text-gray-700">Welcome, {user.firstName}!</span>
-                  <Link to="/" className="btn btn-primary">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <span className="hidden xs:inline text-gray-700 text-sm sm:text-base truncate max-w-[100px] sm:max-w-none">
+                    Welcome, {user.firstName}!
+                  </span>
+                  <Link to="/" className="btn btn-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 whitespace-nowrap">
                     Go to Dashboard
                   </Link>
                 </div>
               ) : (
-                <div className="flex items-center space-x-4">
-                  <Link to="/login" className="text-gray-700 hover:text-gray-900">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <Link to="/login" className="text-gray-700 hover:text-gray-900 text-sm hidden sm:inline">
                     Sign In
                   </Link>
-                  <Link to="/register" className="btn btn-primary">
+                  <Link to="/register" className="btn btn-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 whitespace-nowrap">
                     Get Started
                   </Link>
                 </div>
@@ -256,10 +200,11 @@ const HomePage = () => {
         </div>
       </nav>
 
+
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
@@ -277,10 +222,6 @@ const HomePage = () => {
                     Start Free Account
                     <ArrowRightIcon className="h-5 w-5 ml-2" />
                   </Link>
-                  <button className="btn border-white text-white hover:bg-white hover:text-primary-600 text-lg px-8 py-4 flex items-center justify-center">
-                    <PlayIcon className="h-5 w-5 mr-2" />
-                    View Demo
-                  </button>
                 </div>
               )}
 
@@ -308,11 +249,11 @@ const HomePage = () => {
                     <div className="text-sm text-gray-600">Satisfaction</div>
                   </div>
                   <div className="bg-green-100 rounded p-3 text-center">
-                    <div className="text-2xl font-bold text-green-600">10K+</div>
+                    <div className="text-2xl font-bold text-green-600">100+</div>
                     <div className="text-sm text-gray-600">Students</div>
                   </div>
                   <div className="bg-purple-100 rounded p-3 text-center">
-                    <div className="text-2xl font-bold text-purple-600">500+</div>
+                    <div className="text-2xl font-bold text-purple-600">50+</div>
                     <div className="text-sm text-gray-600">Courses</div>
                   </div>
                 </div>
@@ -354,16 +295,8 @@ const HomePage = () => {
       {/* Security & Trust Section */}
       <section id="security" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Built with Security & Trust in Mind
-            </h2>
-            <p className="text-xl text-gray-600">
-              Your data is protected with enterprise-grade security measures.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {securityFeatures.map((feature, index) => {
               const Icon = feature.icon;
               return (
@@ -448,57 +381,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="bg-gray-50 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-xl text-gray-600">
-              Choose the plan that fits your needs. No hidden fees, cancel anytime.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, index) => (
-              <div key={index} className={`bg-white rounded-xl shadow-lg p-8 relative ${plan.popular ? 'border-2 border-primary-500 transform scale-105' : 'border border-gray-200'}`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-primary-500 text-white px-4 py-2 rounded-full text-sm font-medium">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                  <div className="mb-4">
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                    {plan.price !== 'Free' && <span className="text-gray-600">/month</span>}
-                  </div>
-                  <p className="text-gray-600 mb-6">{plan.description}</p>
-                </div>
-
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center">
-                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <button className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${plan.popular
-                  ? 'bg-primary-600 text-white hover:bg-primary-700'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                  }`}>
-                  {plan.cta}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      
 
       {/* Testimonials Section */}
       <section id="testimonials" className="py-20 bg-white">
@@ -554,11 +437,11 @@ const HomePage = () => {
           <div className="space-y-6">
             {[{
               question: "Is the platform really free for students?",
-              answer: "Yes! Students can register, enroll in courses, submit assignments, and track their progress completely free. Only instructors need verification."
+              answer: "Yes! Students can register, enroll in courses, and track their progress completely free. Only instructors need verification."
             },
             {
-              question: "How does instructor verification work?",
-              answer: "Instructors must upload credential documents during registration. Our admin team reviews and approves instructor accounts to ensure quality education."
+              question: "Can I learn everything for free?",
+              answer: "Yes! Students can enroll in courses and learn for free."
             },
             {
               question: "How secure is student data?",
@@ -638,7 +521,6 @@ const HomePage = () => {
               <h3 className="text-lg font-semibold mb-4">Product</h3>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#features" className="hover:text-white">Features</a></li>
-                <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
                 <li><Link to="/security" className="hover:text-white">Security</Link></li>
                 <li><Link to="/integrations" className="hover:text-white">Integrations</Link></li>
               </ul>

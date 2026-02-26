@@ -13,6 +13,7 @@ import Register from './components/Auth/Register';
 // Dashboard Components
 import StudentDashboard from './components/Dashboard/StudentDashboard';
 import InstructorDashboard from './components/Dashboard/InstructorDashboard';
+import PublicDashboard from './components/Dashboard/PublicDashboard';
 
 // Feature Components
 import CourseList from './components/Courses/CourseList';
@@ -81,7 +82,7 @@ function App() {
 
   const getDashboard = () => {
     if (!user) {
-      return <CourseList />; // Public view is Course List
+      return <PublicDashboard />; // Public view: banner + course list
     }
     switch (user.role) {
       case 'student':
@@ -198,11 +199,9 @@ function App() {
           } />
 
           <Route path="/assignments" element={
-            <ProtectedRoute>
-              <Layout>
-                <AssignmentList />
-              </Layout>
-            </ProtectedRoute>
+            <Layout>
+              <AssignmentList />
+            </Layout>
           } />
 
           <Route path="/assignments/:id" element={

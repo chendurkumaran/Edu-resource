@@ -5,9 +5,10 @@ import axios from 'axios';
 import {
   BookOpenIcon,
   DocumentTextIcon,
-  ClockIcon
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../Common/LoadingSpinner';
+import HomeBanner from '../Home/HomeBanner';
 import { formatDateTime, isValidDate } from '../../utils/dateUtils';
 import type { StudentDashboardData } from '../../types';
 
@@ -23,15 +24,13 @@ const StudentDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       if (!user) return;
-
       const [enrollmentsRes, assignmentsRes] = await Promise.all([
         axios.get(`/api/enrollments/student/${user._id}`),
-        axios.get('/api/assignments')
+        axios.get('/api/assignments'),
       ]);
-
       setDashboardData({
         enrollments: enrollmentsRes.data,
-        assignments: assignmentsRes.data
+        assignments: assignmentsRes.data,
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -40,9 +39,7 @@ const StudentDashboard = () => {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
+  if (loading) return <LoadingSpinner />;
 
   const stats = [
     {
@@ -51,7 +48,7 @@ const StudentDashboard = () => {
       icon: BookOpenIcon,
       color: 'text-blue-600',
       bg: 'bg-blue-100',
-      href: '/my-courses'
+      href: '/my-courses',
     },
     {
       name: 'Pending Assignments',
@@ -59,26 +56,22 @@ const StudentDashboard = () => {
       icon: DocumentTextIcon,
       color: 'text-yellow-600',
       bg: 'bg-yellow-100',
-      href: '/assignments'
-    }
+      href: '/assignments',
+    },
   ];
 
   const upcomingDeadlines = dashboardData?.assignments
-    ?.filter(assignment => assignment.dueDate && isValidDate(assignment.dueDate) && new Date(assignment.dueDate) > new Date())
+    ?.filter(a => a.dueDate && isValidDate(a.dueDate) && new Date(a.dueDate) > new Date())
     ?.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     ?.slice(0, 5) || [];
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold">Welcome back, {user?.firstName}!</h1>
-        <p className="mt-2 text-blue-100">
-          Here's an overview of your academic progress and upcoming tasks.
-        </p>
-      </div>
+    <div className="space-y-8">
 
-      {/* Stats Grid */}
+      {/* ── Shared Hero Banner + Explore Categories ──────────── */}
+      <HomeBanner />
+
+      {/* ── Stats Grid ───────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {stats.map((stat) => {
           const Icon = stat.icon;
@@ -102,35 +95,36 @@ const StudentDashboard = () => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        {/* Upcoming Deadlines */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Deadlines</h2>
-            <Link to="/assignments" className="text-sm text-primary-600 hover:text-primary-500">
-              View all
-            </Link>
-          </div>
-
-          {upcomingDeadlines.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No upcoming deadlines</p>
-          ) : (
-            <div className="space-y-3">
-              {upcomingDeadlines.map((assignment) => (
-                <div key={assignment._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{assignment.title}</p>
-                    <p className="text-sm text-gray-600">{assignment.course?.title}</p>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <ClockIcon className="h-4 w-4 mr-1" />
-                    {formatDateTime(assignment.dueDate)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* ── Upcoming Deadlines ───────────────────────────────── */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Upcoming Deadlines</h2>
+          <Link to="/assignments" className="text-sm text-primary-600 hover:text-primary-500">
+            View all
+          </Link>
         </div>
+
+        {upcomingDeadlines.length === 0 ? (
+          <p className="text-gray-500 text-center py-4">No upcoming deadlines 🎉</p>
+        ) : (
+          <div className="space-y-3">
+            {upcomingDeadlines.map((assignment) => (
+              <div
+                key={assignment._id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              >
+                <div>
+                  <p className="font-medium text-gray-900">{assignment.title}</p>
+                  <p className="text-sm text-gray-600">{assignment.course?.title}</p>
+                </div>
+                <div className="flex items-center text-sm text-gray-500">
+                  <ClockIcon className="h-4 w-4 mr-1" />
+                  {formatDateTime(assignment.dueDate)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

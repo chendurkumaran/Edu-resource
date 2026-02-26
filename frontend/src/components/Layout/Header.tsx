@@ -185,7 +185,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                   >
-                    <Menu.Items className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                    <Menu.Items className="fixed right-2 top-14 mt-2 w-[calc(100vw-1rem)] sm:absolute sm:right-0 sm:top-auto sm:w-80 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                       <div className="p-4 border-b border-gray-200">
                         <div className="flex justify-between items-center">
                           <h3 className="text-lg font-medium">Notifications</h3>

@@ -183,18 +183,20 @@ const ModulePreview = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
             {/* Header */}
             <div className="mb-8">
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex items-center gap-3">
+                    {/* Back to Course */}
                     <button
                         onClick={() => navigate(-1)}
-                        className="text-gray-500 hover:text-gray-700 flex items-center transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50 transition-all"
                     >
-                        <ArrowLeftIcon className="w-5 h-5 mr-2" />
-                        Back to Course
+                        <ArrowLeftIcon className="w-4 h-4 flex-shrink-0" />
+                        Back
                     </button>
 
+                    {/* Next Module / Last Module */}
                     {nextModuleId ? (
                         <button
                             onClick={() => {
@@ -206,26 +208,26 @@ const ModulePreview = () => {
                                 window.scrollTo(0, 0);
                             }}
                             disabled={!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking}
-                            className={`flex items-center transition-colors text-sm font-medium ${!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking
-                                ? 'text-gray-400 cursor-not-allowed'
-                                : 'text-blue-600 hover:text-blue-800'
-                                }`}
                             title={
                                 !allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking
                                     ? 'Complete all assignments to proceed'
                                     : 'Next Module'
                             }
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${!allBlockingAssignmentsCompleted && (module.assignments?.length || 0) > 0 && module.isAssignmentBlocking
+                                ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                                : 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:border-blue-300'
+                                }`}
                         >
                             Next Module
-                            <ArrowRightIcon className="ml-2 h-4 w-4" aria-hidden="true" />
+                            <ArrowRightIcon className="w-4 h-4 flex-shrink-0" />
                         </button>
                     ) : isLastModule ? (
-                        <div className="text-sm font-medium text-green-600 flex items-center">
-                            <span className="mr-2">🎉</span>
-                            Last Module
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-green-200 bg-green-50 text-sm font-medium text-green-600">
+                            <span>🎉</span> Last Module
                         </div>
                     ) : null}
                 </div>
+
 
                 <div className="flex items-start justify-between">
                     <div>
@@ -241,7 +243,7 @@ const ModulePreview = () => {
                         )}
                         <span className="flex items-center">
                             <BookOpenIcon className="w-4 h-4 mr-1.5" />
-                            {module.materials?.length || 0} materials
+                            {module.materials?.length || 0}
                         </span>
                     </div>
                 </div>
@@ -378,16 +380,21 @@ const ModulePreview = () => {
                                     return (
                                         <div key={idx} className="p-3 border border-gray-100 rounded-lg bg-gray-50/50 transition-all hover:bg-gray-50">
                                             <div className="flex justify-between items-start mb-1">
-                                                <h3 className="font-medium text-gray-900 text-sm">
+                                                <a
+                                                    href={`/assignments/${assignId}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="font-medium text-indigo-700 hover:text-indigo-900 text-sm hover:underline"
+                                                >
                                                     {assign.title || 'Assignment'}
-                                                </h3>
+                                                </a>
                                                 {isCompleted ? (
                                                     <span className="text-[10px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded border border-green-200">DONE</span>
                                                 ) : (
                                                     <span className="text-[10px] text-amber-700 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-200">TO DO</span>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-gray-500 mb-3">
+                                            <p className="text-xs text-gray-500 mb-2">
                                                 Due: {assign.dueDate ? new Date(assign.dueDate).toLocaleDateString() : 'No Due Date'}
                                             </p>
 
@@ -395,25 +402,30 @@ const ModulePreview = () => {
                                             <div className="space-y-2">
                                                 {/* Assignment Attachments */}
                                                 {assign.attachments && assign.attachments.length > 0 && (
-                                                    <div className="flex items-center justify-between text-xs bg-white p-2 rounded border border-gray-100">
-                                                        <span className="text-gray-600 truncate flex-1 mr-2">{assign.attachments[0].originalName}</span>
-                                                        <button
-                                                            onClick={() => {
-                                                                const path = assign.attachments[0].path;
-                                                                const url = path.startsWith('http') ? path : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${path}`;
-                                                                window.open(url, '_blank');
-                                                            }}
-                                                            className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
-                                                            title="View Assignment"
-                                                        >
-                                                            <EyeIcon className="w-4 h-4" />
-                                                        </button>
+                                                    <div className="space-y-1">
+                                                        {assign.attachments.map((file: any, fIdx: number) => {
+                                                            const href = file.path || file.url || '#';
+                                                            const fullUrl = href.startsWith('http') ? href : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${href}`;
+                                                            return (
+                                                                <a
+                                                                    key={fIdx}
+                                                                    href={fullUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center gap-2 text-[11px] bg-white p-2 rounded border border-blue-100 hover:bg-blue-50 transition-colors group/file"
+                                                                >
+                                                                    <LinkIcon className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                                                    <span className="text-blue-700 font-medium truncate flex-1">{file.originalName || 'View Attachment'}</span>
+                                                                    <EyeIcon className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                                                                </a>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
 
 
                                                 {/* Solution Dropdown */}
-                                                {(assign.solution && assign.solution.length > 0 && (assign.isSolutionVisible || user?.role === 'instructor')) && (
+                                                {(assign.solution && assign.solution.length > 0) && (
                                                     <div className="mt-2">
                                                         <button
                                                             onClick={() => toggleSolution(assignId)}
@@ -425,22 +437,22 @@ const ModulePreview = () => {
 
                                                         {isExpanded && (
                                                             <div className="mt-1 space-y-1 animate-fadeIn">
-                                                                {assign.solution.map((sol: any, solIdx: number) => (
-                                                                    <div key={solIdx} className="flex items-center justify-between text-xs bg-green-50 p-2 rounded border border-green-100">
-                                                                        <span className="text-green-800 truncate flex-1 mr-2">{sol.originalName}</span>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                const path = sol.url || sol.path;
-                                                                                const url = path.startsWith('http') ? path : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${path}`;
-                                                                                window.open(url, '_blank');
-                                                                            }}
-                                                                            className="text-green-600 hover:text-green-800 p-1 hover:bg-green-100 rounded"
-                                                                            title="View Solution"
+                                                                {assign.solution.map((sol: any, solIdx: number) => {
+                                                                    const href = sol.url || sol.path || '#';
+                                                                    const fullUrl = href.startsWith('http') ? href : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${href}`;
+                                                                    return (
+                                                                        <a
+                                                                            key={solIdx}
+                                                                            href={fullUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="flex items-center gap-2 text-xs bg-green-50 p-2 rounded border border-green-100 hover:bg-green-100 transition-colors"
                                                                         >
-                                                                            <EyeIcon className="w-4 h-4" />
-                                                                        </button>
-                                                                    </div>
-                                                                ))}
+                                                                            <span className="text-green-800 font-medium truncate flex-1">{sol.originalName || 'View Solution'}</span>
+                                                                            <EyeIcon className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                                                                        </a>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         )}
                                                     </div>
@@ -510,7 +522,7 @@ const ModulePreview = () => {
 
             </div>
 
-        </div>
+        </div >
 
     );
 };

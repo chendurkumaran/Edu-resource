@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -11,16 +11,15 @@ import {
   DocumentIcon,
   LinkIcon,
   VideoCameraIcon,
-
   ClockIcon,
   BookOpenIcon,
   Bars4Icon,
-  CloudArrowUpIcon,
   EyeIcon,
-  XMarkIcon
+  XMarkIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from '@heroicons/react/24/outline';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { useDropzone } from 'react-dropzone';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import type { CourseMaterial, Module, Assignment } from '../../types';
 import AssignmentForm from '../Assignments/AssignmentForm';
@@ -130,25 +129,26 @@ const DraggableModule = ({ mod, index, id, moveModule, navigate, handleRemoveMod
           <Bars4Icon className="w-5 h-5" />
         </div>
 
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-2">
+        <div className="flex-1 cursor-grab active:cursor-grabbing">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-y-2 gap-x-4 mb-2">
             <div className="flex items-center gap-3">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">
                 Module {index + 1}
               </span>
-              <h3 className="text-base font-semibold text-gray-900">{mod.title}</h3>
+              <h3 className="text-base font-semibold text-gray-900 break-words">{mod.title}</h3>
             </div>
-            {/* Keeping existing duration logic */}
-            <span className="flex items-center text-sm text-gray-500">
-              <ClockIcon className="w-3 h-3 mr-1" />
-              {mod.duration || 'No duration'}
-            </span>
-            {mod.assignments && mod.assignments.length > 0 && (
-              <span className="flex items-center text-xs text-indigo-500 bg-indigo-50 px-2 py-1 rounded border border-indigo-100">
-                <DocumentIcon className="w-3 h-3 mr-1" />
-                {mod.assignments.length} Assignments
+            <div className="flex flex-wrap items-center gap-3 mt-1 sm:mt-0">
+              <span className="flex items-center text-sm text-gray-500 whitespace-nowrap">
+                <ClockIcon className="w-3 h-3 mr-1" />
+                {mod.duration || 'No duration'}
               </span>
-            )}
+              {mod.assignments && mod.assignments.length > 0 && (
+                <span className="flex items-center text-xs text-indigo-500 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 whitespace-nowrap">
+                  <DocumentIcon className="w-3 h-3 mr-1" />
+                  {mod.assignments.length} Assignments
+                </span>
+              )}
+            </div>
           </div>
 
           <p className="text-gray-600 text-sm mb-3 line-clamp-2">{mod.description}</p>
@@ -204,6 +204,7 @@ const AddModule = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  void fileInputRef; // unused after removing file upload
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [showReorderConfirm, setShowReorderConfirm] = useState(false);
   const [originalModulesList, setOriginalModulesList] = useState<Module[]>([]);
@@ -220,6 +221,30 @@ const AddModule = () => {
   const [availableAssignments, setAvailableAssignments] = useState<Assignment[]>([]);
   const [isCreatingAssignment, setIsCreatingAssignment] = useState(false);
 
+  // GDrive material input
+  const [gdriveTempTitle, setGdriveTempTitle] = useState('');
+  const [gdriveTempLink, setGdriveTempLink] = useState('');
+
+  // Expanded assignments in the editor list
+  const [expandedAssignments, setExpandedAssignments] = useState<string[]>([]);
+  const toggleExpandAssignment = (id: string) => {
+    setExpandedAssignments(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const [showAssignmentDropdown, setShowAssignmentDropdown] = useState(false);
+  const assignmentDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (assignmentDropdownRef.current && !assignmentDropdownRef.current.contains(e.target as Node)) {
+        setShowAssignmentDropdown(false);
+      }
+    };
+    if (showAssignmentDropdown) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showAssignmentDropdown]);
 
   // Markdown Content
   const [markdownContent, setMarkdownContent] = useState('');
@@ -227,21 +252,6 @@ const AddModule = () => {
   // Materials List (Pending Uploads)
   const [materials, setMaterials] = useState<CourseMaterial[]>([]);
   const [modulesList, setModulesList] = useState<Module[]>([]);
-  const [tempMaterial, setTempMaterial] = useState<{
-    title: string;
-    file: File | null;
-    type: 'document' | 'video' | 'note' | 'link';
-    url: string;
-    description: string;
-    gdriveLink: string;
-  }>({
-    title: '',
-    file: null,
-    type: 'document',
-    url: '',
-    description: '',
-    gdriveLink: ''
-  });
 
   const fetchCourseData = async () => {
     if (!id) return;
@@ -251,9 +261,9 @@ const AddModule = () => {
       setModulesList(course.modules || []);
       setOriginalModulesList(course.modules || []);
 
-      // Fetch assignments for this course
+      // Fetch all available assignments (not just this course)
       try {
-        const assignRes = await axios.get(`/api/assignments/course/${id}`);
+        const assignRes = await axios.get(`/api/assignments`);
         setAvailableAssignments(assignRes.data);
       } catch (err) {
         console.error("Failed to load assignments", err);
@@ -285,89 +295,36 @@ const AddModule = () => {
     fetchCourseData();
   }, [id, moduleId, navigate]);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles?.length > 0) {
-      setTempMaterial(prev => ({ ...prev, file: acceptedFiles[0] }));
-    }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: tempMaterial.type === 'video'
-      ? { 'video/*': [] }
-      : {
-        'application/pdf': ['.pdf'],
-        'application/msword': ['.doc', '.dot'],
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-        'text/plain': ['.txt'],
-        'image/*': ['.png', '.jpg', '.jpeg']
-      },
-    maxFiles: 1,
-    multiple: false
-  });
-
-  const removeSelectedFile = () => {
-    setTempMaterial(prev => ({ ...prev, file: null }));
-  };
 
 
 
-  const addMaterialToList = async () => {
-    if (!tempMaterial.title) {
-      toast.error('Please provide a title');
+  const addMaterialToList = () => {
+    if (!gdriveTempTitle.trim()) {
+      toast.error('Please provide a title for the material');
       return;
     }
-
-    if (tempMaterial.type === 'link' && !tempMaterial.url) {
-      toast.error('Please provide a URL');
+    if (!gdriveTempLink.trim()) {
+      toast.error('Please provide a Google Drive link');
       return;
     }
-
-    if (tempMaterial.type !== 'link' && !tempMaterial.file && !tempMaterial.gdriveLink.trim()) {
-      toast.error('Please upload a file or enter a Google Drive link');
+    try {
+      new URL(gdriveTempLink);
+    } catch {
+      toast.error('Please enter a valid URL');
       return;
-    }
-
-    let materialUrl = tempMaterial.url;
-    let filename = '';
-    let materialType = tempMaterial.type;
-
-    // Priority: GDrive link > File upload > Manual URL
-    if (tempMaterial.gdriveLink.trim()) {
-      materialUrl = normalizeGDriveLink(tempMaterial.gdriveLink.trim());
-      filename = '';
-      materialType = 'document';
-    } else if (tempMaterial.file) {
-      const formData = new FormData();
-      formData.append('file', tempMaterial.file);
-      formData.append('type', 'course-material');
-
-      try {
-        toast.loading('Uploading file...', { id: 'upload' });
-        const res = await axios.post('/api/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        toast.success('File uploaded', { id: 'upload' });
-        materialUrl = res.data.filePath;
-        filename = tempMaterial.file.name;
-      } catch (err) {
-        console.error(err);
-        toast.error('Failed to upload file', { id: 'upload' });
-        return;
-      }
     }
 
     const newMaterial: CourseMaterial = {
-      title: tempMaterial.title,
-      type: materialType,
-      url: materialUrl,
-      filename,
-      description: tempMaterial.description
+      title: gdriveTempTitle.trim(),
+      type: 'document',
+      url: normalizeGDriveLink(gdriveTempLink.trim()),
+      filename: '',
+      description: ''
     };
 
     setMaterials([...materials, newMaterial]);
-    setTempMaterial({ title: '', file: null, type: 'document', url: '', description: '', gdriveLink: '' });
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setGdriveTempTitle('');
+    setGdriveTempLink('');
     toast.success('Material added');
   };
 
@@ -427,7 +384,8 @@ const AddModule = () => {
     setModuleData({ title: '', description: '', duration: '', assignments: [], isAssignmentBlocking: true });
     setMarkdownContent('');
     setMaterials([]);
-    setTempMaterial({ title: '', file: null, type: 'document', url: '', description: '', gdriveLink: '' });
+    setGdriveTempTitle('');
+    setGdriveTempLink('');
   };
 
   const handleSaveModule = async () => {
@@ -471,14 +429,55 @@ const AddModule = () => {
     }
   };
 
-  const handleSubmitModules = () => {
-    if (moduleId) {
-      navigate(`/courses/${id}`);
-    } else {
-      toast.success('All modules submitted successfully!');
-      navigate(`/courses/${id}`);
+  const handleSubmitModules = async () => {
+    // Warn if user left the assignment creation form open (unsaved draft assignment)
+    if (isCreatingAssignment) {
+      setIsCreatingAssignment(false);
+      toast('Assignment creation form was closed — the draft assignment was not saved.', { icon: '⚠️' });
     }
+
+    // Auto-save any unsaved module form data before leaving
+    const hasUnsavedContent = moduleData.title.trim() ||
+      moduleData.description.trim() ||
+      markdownContent.trim() ||
+      materials.length > 0 ||
+      moduleData.assignments.length > 0;
+
+    if (hasUnsavedContent) {
+      if (!moduleData.title.trim()) {
+        toast.error('Please add a Module Title before finishing, or clear the form.');
+        document.getElementById('module-form-section')?.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      // Auto-save the module
+      toast.loading('Auto-saving unsaved module...', { id: 'autosave' });
+      setLoading(true);
+      try {
+        const payload = {
+          ...moduleData,
+          markdownContent,
+          materials
+        };
+        if (editingModuleId) {
+          await axios.put(`/api/courses/${id}/modules/${editingModuleId}`, payload);
+          toast.success(`Module "${moduleData.title}" updated automatically!`, { id: 'autosave' });
+        } else {
+          await axios.post(`/api/courses/${id}/modules`, payload);
+          toast.success(`Module "${moduleData.title}" saved automatically!`, { id: 'autosave' });
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error('Auto-save failed — please save the module manually.', { id: 'autosave' });
+        setLoading(false);
+        return;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    navigate(`/courses/${id}`);
   };
+
 
 
   const moveModule = (dragIndex: number, hoverIndex: number) => {
@@ -526,14 +525,14 @@ const AddModule = () => {
 
   return (
 
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-hidden">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center">
           <button
             onClick={() => navigate(-1)}
-            className="mr-4 text-gray-500 hover:text-gray-700 transition-colors"
+            className="mr-3 sm:mr-4 text-gray-500 hover:text-gray-700 transition-colors mt-1 sm:mt-0 flex-shrink-0"
           >
-            <ArrowLeftIcon className="w-6 h-6" />
+            <ArrowLeftIcon className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{editingModuleId ? 'Edit Module' : 'Add New Module'}</h1>
@@ -554,7 +553,7 @@ const AddModule = () => {
           <div className="space-y-8">
             {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="col-span-1">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Module Title</label>
                 <input
                   type="text"
@@ -563,7 +562,7 @@ const AddModule = () => {
                   onChange={(e) => setModuleData({ ...moduleData, title: e.target.value })}
                   placeholder="e.g. Introduction to React" />
               </div>
-              <div className="col-span-1">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
                 <input
                   type="text"
@@ -572,7 +571,7 @@ const AddModule = () => {
                   onChange={(e) => setModuleData({ ...moduleData, duration: e.target.value })}
                   placeholder="e.g. 2 hours" />
               </div>
-              <div className="col-span-2">
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   className="input w-full"
@@ -589,162 +588,53 @@ const AddModule = () => {
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Materials</h3>
 
-              {/* Add Material Card */}
+              {/* Add Material via GDrive */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                  <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Add New Material</h4>
-                  <span className="text-xs text-gray-500 font-medium px-2 py-1 bg-white rounded border border-gray-200">
-                    Step 1: Details & Upload
-                  </span>
+                <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Add Material via Google Drive</h4>
                 </div>
 
-                <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6">
-                  {/* Left Column: Inputs */}
-                  <div className="md:col-span-7 space-y-5">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-1">
-                        <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Material Type</label>
-                        <select
-                          className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors"
-                          value={tempMaterial.type}
-                          onChange={(e) => setTempMaterial({ ...tempMaterial, type: e.target.value as any, file: null })}
-                        >
-                          <option value="document">Document/PDF</option>
-                          <option value="video">Video Content</option>
-                          <option value="note">Study Note</option>
-                          <option value="link">External Link</option>
-                        </select>
-                      </div>
-                      <div className="col-span-1">
-                        {/* Spacer or additional small field could go here if needed */}
-                      </div>
-                    </div>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Title <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors"
+                      placeholder="e.g. Week 1 Lecture Slides"
+                      value={gdriveTempTitle}
+                      onChange={(e) => setGdriveTempTitle(e.target.value)}
+                    />
+                  </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Title <span className="text-red-500">*</span></label>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Google Drive Link <span className="text-red-500">*</span></label>
+                    <div className="relative">
                       <input
-                        type="text"
-                        className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors"
-                        placeholder="e.g. Week 1 Lecture Slides"
-                        value={tempMaterial.title}
-                        onChange={(e) => setTempMaterial({ ...tempMaterial, title: e.target.value })} />
+                        type="url"
+                        className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors pl-10"
+                        placeholder="https://drive.google.com/file/d/.../view"
+                        value={gdriveTempLink}
+                        onChange={(e) => setGdriveTempLink(e.target.value)}
+                      />
+                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+                        <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
+                        <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
+                        <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
+                        <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
+                        <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
+                      </svg>
                     </div>
-
-                    {/* Google Drive Link */}
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Upload via Google Drive</label>
-                      <div className="relative">
-                        <input
-                          type="url"
-                          className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors pl-10"
-                          placeholder="https://drive.google.com/file/d/.../view"
-                          value={tempMaterial.gdriveLink}
-                          onChange={(e) => setTempMaterial({ ...tempMaterial, gdriveLink: e.target.value, file: null })} />
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L29 52.2H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
-                          <path d="M43.65 25l-15.25-26.4c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.7A8.9 8.9 0 0 0 0 48.2h29z" fill="#00ac47" />
-                          <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L84.7 60l-22-38h-29l14.65 25.35z" fill="#ea4335" />
-                          <path d="M43.65 25L58.9 0H29a8.88 8.88 0 0 0-4.55 1.2l14.65 25.35 4.55-1.55z" fill="#00832d" />
-                          <path d="M58.3 52.2H29l-15.25 26.4c1.35.8 2.9 1.2 4.55 1.2H69c1.65 0 3.2-.4 4.55-1.2z" fill="#2684fc" />
-                          <path d="M73.4 26.5L58.9 0a8.88 8.88 0 0 0-4.55 1.2L43.65 25 62.7 48.2h24.6c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
-                        </svg>
-                      </div>
-                      <p className="text-[10px] text-gray-400 mt-1">Paste a Drive sharing link — file stays on Drive, nothing uploaded.</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Description (Optional)</label>
-                      <textarea
-                        className="input text-sm w-full bg-gray-50 focus:bg-white transition-colors resize-none"
-                        placeholder="Briefly describe this material..."
-                        rows={3}
-                        value={tempMaterial.description}
-                        onChange={(e) => setTempMaterial({ ...tempMaterial, description: e.target.value })} />
-                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">Paste a Drive sharing link — file stays on Drive, nothing uploaded.</p>
                   </div>
 
-                  {/* Right Column: Upload/Link */}
-                  <div className="md:col-span-5 flex flex-col">
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
-                      {tempMaterial.type === 'link' ? 'External URL' : 'File Upload'} <span className="text-red-500">*</span>
-                    </label>
-
-                    <div className="flex-1 flex flex-col">
-                      {tempMaterial.type === 'link' ? (
-                        <div className="flex-1 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-6 flex flex-col justify-center items-center text-center">
-                          <LinkIcon className="h-10 w-10 text-gray-400 mb-3" />
-                          <input
-                            type="url"
-                            className="input text-sm w-full mb-2 text-center"
-                            placeholder="https://example.com/resource"
-                            value={tempMaterial.url}
-                            onChange={(e) => setTempMaterial({ ...tempMaterial, url: e.target.value })} />
-                          <p className="text-xs text-gray-500">Paste the full URL to the external resource</p>
-                        </div>
-                      ) : (
-                        <div className="flex-1">
-                          {!tempMaterial.file ? (
-                            <div
-                              {...getRootProps()}
-                              className={`h-full min-h-[200px] flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-all cursor-pointer ${isDragActive
-                                ? 'border-blue-500 bg-blue-50 scale-[1.02]'
-                                : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'}`}
-                            >
-                              <input {...getInputProps()} />
-                              <div className="p-3 bg-white rounded-full shadow-sm mb-3">
-                                <CloudArrowUpIcon className={`h-8 w-8 ${isDragActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                              </div>
-                              <p className="text-sm font-medium text-gray-700 text-center mb-1">
-                                {isDragActive ? 'Drop file here' : 'Click or Drag file here'}
-                              </p>
-                              <p className="text-xs text-gray-500 text-center max-w-[200px]">
-                                {tempMaterial.type === 'video'
-                                  ? 'MP4, MKV, AVI (Max 100MB)'
-                                  : 'PDF, DOC, TXT, Images (Max 10MB)'}
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="h-full min-h-[200px] flex flex-col items-center justify-center p-6 border-2 border-solid border-blue-200 bg-blue-50/50 rounded-lg relative group">
-                              <button
-                                onClick={removeSelectedFile}
-                                className="absolute top-2 right-2 p-1.5 bg-white text-gray-400 hover:text-red-500 rounded-full shadow-sm border border-gray-100 transition-colors"
-                                title="Remove file"
-                              >
-                                <XMarkIcon className="h-4 w-4" />
-                              </button>
-
-                              <div className="p-4 bg-white rounded-xl shadow-sm mb-3">
-                                {tempMaterial.type === 'video' ? (
-                                  <VideoCameraIcon className="h-8 w-8 text-blue-600" />
-                                ) : (
-                                  <DocumentIcon className="h-8 w-8 text-blue-600" />
-                                )}
-                              </div>
-                              <p className="text-sm font-semibold text-gray-900 text-center break-all px-2 line-clamp-2">
-                                {tempMaterial.file.name}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {(tempMaterial.file.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
-                              <div className="mt-3 flex items-center gap-2 text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full border border-green-100">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                Ready to upload
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Footer Action */}
-                  <div className="md:col-span-12 flex justify-end pt-2">
+                  <div className="flex justify-end">
                     <button
                       onClick={addMaterialToList}
                       className="btn btn-primary px-6 py-2.5 flex items-center shadow-sm hover:shadow-md transition-all active:scale-95"
                     >
                       <PlusIcon className="h-5 w-5 mr-2" />
-                      Save Material
+                      Add Material
                     </button>
                   </div>
                 </div>
@@ -836,30 +726,105 @@ const AddModule = () => {
                     <div className="border-b border-gray-200 bg-white">
                       {moduleData.assignments.map((assignId, index) => {
                         const assignParams = availableAssignments.find(a => a._id === assignId);
+                        const isExpanded = expandedAssignments.includes(assignId);
                         return (
-                          <div key={index} className="px-6 py-4 border-b last:border-0 border-gray-100 flex justify-between items-center hover:bg-gray-50">
-                            <div className="flex items-start gap-3">
-                              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                                <DocumentIcon className="w-5 h-5" />
+                          <div key={index} className="border-b last:border-0 border-gray-100">
+                            {/* Header row */}
+                            <div className="px-6 py-4 flex justify-between items-center hover:bg-gray-50">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                  <DocumentIcon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-medium text-gray-900">{assignParams?.title || 'Unknown Assignment'}</h4>
+                                  <p className="text-xs text-gray-500">
+                                    Created: {(assignParams as any)?.createdAt ? new Date((assignParams as any).createdAt).toLocaleDateString('en-GB') : 'N/A'}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <h4 className="text-sm font-medium text-gray-900">{assignParams?.title || 'Unknown Assignment'}</h4>
-                                <p className="text-xs text-gray-500">
-                                  Due: {assignParams?.dueDate ? new Date(assignParams.dueDate).toLocaleDateString() : 'N/A'}
-                                </p>
+                              <div className="flex items-center gap-1">
+                                {/* Expand toggle */}
+                                <button
+                                  onClick={() => toggleExpandAssignment(assignId)}
+                                  className="text-gray-400 hover:text-indigo-600 transition-colors p-1 rounded"
+                                  title={isExpanded ? 'Collapse' : 'View details'}
+                                >
+                                  {isExpanded ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+                                </button>
+                                {/* Remove */}
+                                <button
+                                  onClick={() => {
+                                    const newAssignments = [...moduleData.assignments];
+                                    newAssignments.splice(index, 1);
+                                    setModuleData({ ...moduleData, assignments: newAssignments });
+                                  }}
+                                  className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                  title="Remove Assignment"
+                                >
+                                  <TrashIcon className="w-5 h-5" />
+                                </button>
                               </div>
                             </div>
-                            <button
-                              onClick={() => {
-                                const newAssignments = [...moduleData.assignments];
-                                newAssignments.splice(index, 1);
-                                setModuleData({ ...moduleData, assignments: newAssignments });
-                              }}
-                              className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                              title="Remove Assignment"
-                            >
-                              <TrashIcon className="w-5 h-5" />
-                            </button>
+
+                            {/* Expanded details */}
+                            {isExpanded && assignParams && (
+                              <div className="px-6 pb-5 bg-indigo-50/40 border-t border-indigo-100">
+                                {/* Description */}
+                                {assignParams.description && (
+                                  <div className="mt-3 mb-3">
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Description</p>
+                                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{assignParams.description}</p>
+                                  </div>
+                                )}
+
+                                {/* Assignment attachments */}
+                                {assignParams.attachments && (assignParams.attachments as any[]).length > 0 && (
+                                  <div className="mb-3">
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Assignment Materials</p>
+                                    <div className="space-y-1">
+                                      {(assignParams.attachments as any[]).map((att: any, i: number) => {
+                                        const href = att.url || att.path || '#';
+                                        const fullUrl = href.startsWith('http') ? href : `http://localhost:5000${href}`;
+                                        return (
+                                          <a key={i} href={fullUrl} target="_blank" rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-xs bg-white px-3 py-2 rounded border border-blue-100 hover:bg-blue-50 transition-colors">
+                                            <LinkIcon className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                            <span className="text-blue-700 font-medium truncate">{att.originalName || 'View Attachment'}</span>
+                                            <EyeIcon className="w-3 h-3 text-blue-400 flex-shrink-0 ml-auto" />
+                                          </a>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Solution */}
+                                {assignParams.solution && (assignParams.solution as any[]).length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Solution Key</p>
+                                    <div className="space-y-1">
+                                      {(assignParams.solution as any[]).map((sol: any, i: number) => {
+                                        const href = sol.url || sol.path || '#';
+                                        const fullUrl = href.startsWith('http') ? href : `http://localhost:5000${href}`;
+                                        return (
+                                          <a key={i} href={fullUrl} target="_blank" rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-xs bg-white px-3 py-2 rounded border border-green-100 hover:bg-green-50 transition-colors">
+                                            <LinkIcon className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                            <span className="text-green-700 font-medium truncate">{sol.originalName || 'View Solution'}</span>
+                                            <EyeIcon className="w-3 h-3 text-green-500 flex-shrink-0 ml-auto" />
+                                          </a>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* No details case */}
+                                {!assignParams.description && !(assignParams.attachments as any[])?.length && !(assignParams.solution as any[])?.length && (
+                                  <p className="text-xs text-gray-400 mt-3 italic">No description, materials or solution added yet. Edit the assignment to add them.</p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -895,44 +860,44 @@ const AddModule = () => {
                     </div>
                   ) : (
                     <div className="p-6 bg-gray-50">
-                      <div className="max-w-md mx-auto">
+                      <div className="max-w-md mx-auto relative" ref={assignmentDropdownRef}>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Link Existing Assignment</label>
-                        <select
-                          className="input w-full mb-3"
-                          value=""
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val) {
-                              if (moduleData.assignments.includes(val)) {
-                                toast.error("Assignment already added");
-                                return;
-                              }
-                              setModuleData(prev => ({ ...prev, assignments: [...prev.assignments, val] }));
-                            }
-                          }}
+                        <button
+                          type="button"
+                          onClick={() => setShowAssignmentDropdown(o => !o)}
+                          className="input w-full mb-3 flex items-center justify-between text-left gap-2"
                         >
-                          <option value="">-- Select Assignment to Link --</option>
-                          {availableAssignments.filter(a => !moduleData.assignments.includes(a._id)).map((assign) => (
-                            <option key={assign._id} value={assign._id}>
-                              {assign.title} (Due: {new Date(assign.dueDate).toLocaleDateString()})
-                            </option>
-                          ))}
-                        </select>
-
-                        <div className="flex items-center mt-4 pt-4 border-t border-gray-200">
-                          <input
-                            type="checkbox"
-                            id="blocking-checkbox"
-                            checked={moduleData.isAssignmentBlocking}
-                            onChange={(e) => setModuleData({ ...moduleData, isAssignmentBlocking: e.target.checked })}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
-                          <label htmlFor="blocking-checkbox" className="ml-2 block text-sm text-gray-900">
-                            Require all assignments to proceed (Blocking)
-                          </label>
-                        </div>
-                        <p className="ml-6 text-xs text-gray-500 mt-1">
-                          If checked, students cannot access the next module until ALL assignments in this module are submitted.
-                        </p>
+                          <span className="text-gray-400">
+                            -- Select Assignment to Link --
+                          </span>
+                          <ChevronDownIcon
+                            className={`h-4 w-4 text-gray-400 transition-transform duration-150 ${showAssignmentDropdown ? 'rotate-180' : ''}`}
+                          />
+                        </button>
+                        {showAssignmentDropdown && (
+                          <div className="absolute z-40 top-[60px] left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                            <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                              {availableAssignments.filter(a => !moduleData.assignments.includes(a._id)).length === 0 ? (
+                                <div className="px-4 py-3 text-sm text-gray-500 text-center">No more assignments to link</div>
+                              ) : (
+                                availableAssignments.filter(a => !moduleData.assignments.includes(a._id)).map((assign) => (
+                                  <button
+                                    key={assign._id}
+                                    type="button"
+                                    onClick={() => {
+                                      setModuleData(prev => ({ ...prev, assignments: [...prev.assignments, assign._id] }));
+                                      setShowAssignmentDropdown(false);
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors text-gray-900 border-b border-gray-50 last:border-0"
+                                  >
+                                    <div className="font-medium truncate">{assign.title}</div>
+                                    <div className="text-[10px] text-gray-500 mt-0.5">Created: {(assign as any).createdAt ? new Date((assign as any).createdAt).toLocaleDateString('en-GB') : 'N/A'}</div>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -941,12 +906,12 @@ const AddModule = () => {
               </div>
 
             </div>
-            <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
 
               {editingModuleId && (
                 <button
                   onClick={handleCancelEdit}
-                  className="btn bg-white border border-red-200 text-red-600 hover:bg-red-50"
+                  className="btn bg-white border border-red-200 text-red-600 hover:bg-red-50 w-full sm:w-auto"
                 >
                   Cancel Edit
                 </button>
@@ -954,7 +919,7 @@ const AddModule = () => {
               <button
                 onClick={handleSaveModule}
                 disabled={loading}
-                className="btn btn-primary min-w-[150px]"
+                className="btn btn-primary w-full sm:w-auto sm:min-w-[150px]"
               >
                 {loading ? 'Saving...' : (editingModuleId ? 'Update Module' : 'Save & Add Module')}
               </button>

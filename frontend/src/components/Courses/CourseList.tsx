@@ -5,7 +5,6 @@ import axios from 'axios';
 import {
   PlusIcon,
   BookOpenIcon,
-  UserIcon,
   CalendarIcon,
   PencilIcon,
   EyeIcon,
@@ -167,7 +166,7 @@ const CourseList = () => {
       {/* Search and Filters */}
       {/* Search and Filters - Removed as per clean up */}
 
-      {/* Course Grid */}
+      {/* Course Grid grouped by Category */}
       {courses.length === 0 ? (
         <div className="text-center py-12">
           <BookOpenIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -175,157 +174,176 @@ const CourseList = () => {
           <p className="text-gray-600">Try adjusting your search criteria</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
-            <div key={course._id} className={`card hover:shadow-md transition-shadow duration-200 ${course.isActive === false ? 'opacity-75 bg-gray-50' : ''}`}>
-              {/* Course Image */}
-              <div className="h-48 rounded-lg mb-4 overflow-hidden relative">
-                {course.thumbnailImage ? (
-                  <img
-                    src={course.thumbnailImage}
-                    alt={course.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <BookOpenIcon className="h-16 w-16 text-white" />
-                  </div>
-                )}
+        <div className="space-y-12">
+          {Object.entries(
+            courses.reduce((acc, course) => {
+              const cat = course.category || 'Uncategorized';
+              if (!acc[cat]) acc[cat] = [];
+              acc[cat].push(course);
+              return acc;
+            }, {} as Record<string, Course[]>)
+          ).map(([category, catCourses]) => (
+            <div key={category}>
+              <div className="flex items-center justify-between mb-5 border-b border-gray-200 pb-2">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                  {category}
+                </h2>
+                <button
+                  onClick={() => {
+                    // Could implement filter by category here if needed, or just visual
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center"
+                >
+                  View All &rarr;
+                </button>
               </div>
-
-              {/* Course Info */}
-              <div className="space-y-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                    {course.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">{course.courseCode}</p>
-                  {!course.isApproved && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mt-1 mr-2">
-                      Pending Approval
-                    </span>
-                  )}
-                  {course.isActive === false && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700 mt-1">
-                      <EyeSlashIcon className="w-3 h-3 mr-1" />
-                      Hidden from Students
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-gray-600 text-sm line-clamp-3">
-                  {course.description}
-                </p>
-
-                {/* Course Details */}
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <UserIcon className="h-4 w-4 mr-2" />
-                    {course.instructor?.firstName} {course.instructor?.lastName}
-                  </div>
-
-                  <div className="flex items-center">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    {course.credits} credits • {course.level}
-                  </div>
-                </div>
-
-                {/* Enrollment Status */}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">
-                    {course.currentEnrollment}/{course.maxStudents} enrolled
-                  </span>
-                  <span className={`px-2 py-1 rounded-full text-xs ${course.level === '1st Year' ? 'bg-green-100 text-green-800' :
-                    course.level === '2nd Year' ? 'bg-blue-100 text-blue-800' :
-                      course.level === '3rd Year' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                    }`}>
-                    {course.level}
-                  </span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex space-x-2 pt-4">
-                  <Link
-                    to={`/courses/${course._id}`}
-                    className="flex-1 btn btn-secondary text-center flex items-center justify-center"
-                  >
-                    View Details
-                  </Link>
-
-                  {user?.role === 'student' && course.isApproved && (
-                    <>
-                      {enrolledCourseIds.includes(course._id) ? (
-                        // If enrolled, View Details is already shown above, so we don't need another button.
-                        // But the user requested "view details enroll should go and then the view -> only should appear".
-                        // Currently "View Details" is separate at line 265.
-                        // Let's hide the Enroll button if enrolled.
-                        null
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {catCourses.map((course) => (
+                  <div key={course._id} className={`card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${course.isActive === false ? 'opacity-75 bg-gray-50' : ''}`}>
+                    {/* Course Image */}
+                    <div className="h-48 rounded-lg mb-4 overflow-hidden relative">
+                      {course.thumbnailImage ? (
+                        <img
+                          src={course.thumbnailImage}
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <button
-                          onClick={() => handleEnroll(course._id)}
-                          disabled={course.currentEnrollment >= course.maxStudents}
-                          className="flex-1 btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                          <BookOpenIcon className="h-16 w-16 text-white" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Course Info */}
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                          {course.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">{course.courseCode}</p>
+                        {!course.isApproved && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mt-1 mr-2">
+                            Pending Approval
+                          </span>
+                        )}
+                        {course.isActive === false && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700 mt-1">
+                            <EyeSlashIcon className="w-3 h-3 mr-1" />
+                            Hidden from Students
+                          </span>
+                        )}
+                      </div>
+
+
+                      {/* Course Details */}
+                      <div className="space-y-2 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <CalendarIcon className="h-4 w-4 mr-2" />
+                          {course.credits} credits • {course.level}
+                        </div>
+                      </div>
+
+                      {/* Enrollment Status */}
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">
+                          {course.currentEnrollment}/{course.maxStudents} enrolled
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs ${course.level === '1st Year' ? 'bg-green-100 text-green-800' :
+                          course.level === '2nd Year' ? 'bg-blue-100 text-blue-800' :
+                            course.level === '3rd Year' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                          }`}>
+                          {course.level}
+                        </span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex space-x-2 pt-4">
+                        <Link
+                          to={`/courses/${course._id}`}
+                          className="flex-1 btn btn-secondary text-center flex items-center justify-center"
                         >
-                          {course.currentEnrollment >= course.maxStudents ? 'Full' : 'Enroll'}
-                        </button>
+                          View Details
+                        </Link>
+
+                        {user?.role === 'student' && course.isApproved && (
+                          <>
+                            {enrolledCourseIds.includes(course._id) ? (
+                              // If enrolled, View Details is already shown above, so we don't need another button.
+                              // But the user requested "view details enroll should go and then the view -> only should appear".
+                              // Currently "View Details" is separate at line 265.
+                              // Let's hide the Enroll button if enrolled.
+                              null
+                            ) : (
+                              <button
+                                onClick={() => handleEnroll(course._id)}
+                                disabled={course.currentEnrollment >= course.maxStudents}
+                                className="flex-1 btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {course.currentEnrollment >= course.maxStudents ? 'Full' : 'Enroll'}
+                              </button>
+                            )}
+                          </>
+                        )}
+
+                        {user?.role === 'student' && !course.isApproved && (
+                          <button
+                            disabled
+                            className="flex-1 btn btn-secondary opacity-50 cursor-not-allowed"
+                          >
+                            Pending Approval
+                          </button>
+                        )}
+
+                        {user?.role === 'admin' && !course.isApproved && (
+                          <button
+                            onClick={() => handleApproveCourse(course._id)}
+                            className="flex-1 btn btn-primary"
+                          >
+                            Approve Course
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Instructor Actions */}
+                      {user?.role === 'instructor' && user._id === course.instructor?._id && (
+                        <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-100 mt-2">
+                          <button
+                            onClick={() => handleToggleVisibility(course._id, course.isActive ?? true)}
+                            className="p-2 text-gray-500 hover:text-primary-600"
+                            title={course.isActive ?? true ? "Hide from students" : "Show to students"}
+                          >
+                            {course.isActive ?? true ? (
+                              <EyeIcon className="h-5 w-5" />
+                            ) : (
+                              <EyeSlashIcon className="h-5 w-5" />
+                            )}
+                          </button>
+                          <Link
+                            to={`/courses/edit/${course._id}`}
+                            className="p-2 text-gray-500 hover:text-blue-600"
+                            title="Edit Course"
+                          >
+                            <PencilIcon className="h-5 w-5" />
+                          </Link>
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+                                handleDeleteCourse(course._id);
+                              }
+                            }}
+                            className="p-2 text-gray-500 hover:text-red-600"
+                            title="Delete Course"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </div>
                       )}
-                    </>
-                  )}
-
-                  {user?.role === 'student' && !course.isApproved && (
-                    <button
-                      disabled
-                      className="flex-1 btn btn-secondary opacity-50 cursor-not-allowed"
-                    >
-                      Pending Approval
-                    </button>
-                  )}
-
-                  {user?.role === 'admin' && !course.isApproved && (
-                    <button
-                      onClick={() => handleApproveCourse(course._id)}
-                      className="flex-1 btn btn-primary"
-                    >
-                      Approve Course
-                    </button>
-                  )}
-                </div>
-
-                {/* Instructor Actions */}
-                {user?.role === 'instructor' && user._id === course.instructor?._id && (
-                  <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-100 mt-2">
-                    <button
-                      onClick={() => handleToggleVisibility(course._id, course.isActive ?? true)}
-                      className="p-2 text-gray-500 hover:text-primary-600"
-                      title={course.isActive ?? true ? "Hide from students" : "Show to students"}
-                    >
-                      {course.isActive ?? true ? (
-                        <EyeIcon className="h-5 w-5" />
-                      ) : (
-                        <EyeSlashIcon className="h-5 w-5" />
-                      )}
-                    </button>
-                    <Link
-                      to={`/courses/edit/${course._id}`}
-                      className="p-2 text-gray-500 hover:text-blue-600"
-                      title="Edit Course"
-                    >
-                      <PencilIcon className="h-5 w-5" />
-                    </Link>
-                    <button
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-                          handleDeleteCourse(course._id);
-                        }
-                      }}
-                      className="p-2 text-gray-500 hover:text-red-600"
-                      title="Delete Course"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             </div>
           ))}

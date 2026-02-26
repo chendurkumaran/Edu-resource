@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
     DocumentIcon,
+    ClipboardDocumentCheckIcon,
     LinkIcon,
     LockClosedIcon,
     EyeIcon,
@@ -189,59 +190,111 @@ const CourseContentViewer = ({
                                             navigate(`/courses/${courseId}/modules/${module._id}`);
                                         }
                                     }}
-                                    className={`group relative bg-white border rounded-xl p-6 transition-all ${isLocked
+                                    className={`group relative bg-white border rounded-xl p-4 sm:p-6 transition-all ${isLocked
                                         ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75'
                                         : 'border-gray-200 hover:shadow-md cursor-pointer hover:border-blue-200'
                                         }`}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`h-12 w-12 rounded-lg flex items-center justify-center transition-colors ${isLocked
-                                                ? 'bg-gray-100 text-gray-400'
-                                                : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
-                                                }`}>
-                                                {isLocked ? <LockClosedIcon className="h-6 w-6" /> : <DocumentIcon className="h-6 w-6" />}
-                                            </div>
-                                            <div>
-                                                <h3 className={`text-lg font-semibold transition-colors ${isLocked ? 'text-gray-500' : 'text-gray-900 group-hover:text-blue-600'
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`h-12 w-12 rounded-lg flex items-center justify-center transition-colors ${isLocked
+                                                    ? 'bg-gray-100 text-gray-400'
+                                                    : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
                                                     }`}>
-                                                    {module.title}
-                                                </h3>
-                                                <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                                                    {module.duration && (
-                                                        <span className="flex items-center">
-                                                            <ClockIcon className="w-3.5 h-3.5 mr-1" />
-                                                            {module.duration}
-                                                        </span>
-                                                    )}
-                                                    <span className="flex items-center">
-                                                        <BookOpenIcon className="w-3.5 h-3.5 mr-1" />
-                                                        {module.materials?.length || 0} materials
-                                                    </span>
-                                                    {(module.assignments?.length || 0) > 0 && (
-                                                        <span className="flex items-center">
-                                                            {isLocked ? 'Locked by previous assignments' : `${module.assignments?.length} assignments`}
-                                                        </span>
-                                                    )}
+                                                    {isLocked ? <LockClosedIcon className="h-6 w-6" /> : <DocumentIcon className="h-6 w-6" />}
                                                 </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className={`text-base sm:text-lg font-semibold truncate transition-colors ${isLocked ? 'text-gray-500' : 'text-gray-900 group-hover:text-blue-600'
+                                                        }`}>
+                                                        {module.title}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2 sm:gap-3 text-sm text-gray-500 mt-1">
+                                                        {module.duration && (
+                                                            <span className="flex items-center">
+                                                                <ClockIcon className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+                                                                {module.duration}
+                                                            </span>
+                                                        )}
+                                                        <span className="flex items-center">
+                                                            <BookOpenIcon className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+                                                            {module.materials?.length || 0}
+                                                            <span className="hidden sm:inline ml-1">materials</span>
+                                                        </span>
+                                                        {(module.assignments?.length || 0) > 0 && (
+                                                            <span className="flex items-center">
+                                                                <ClipboardDocumentCheckIcon className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+                                                                {isLocked ? (
+                                                                    <>
+                                                                        <span className="hidden sm:inline">Locked by assignments</span>
+                                                                        <span className="sm:hidden text-xs">Locked</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        {module.assignments?.length}
+                                                                        <span className="hidden sm:inline ml-1">assignments</span>
+                                                                    </>
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className={`flex items-center transition-all ${isLocked
+                                                ? 'text-gray-400'
+                                                : 'text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1'
+                                                }`}>
+                                                {isLocked ? (
+                                                    <span className="text-sm font-medium flex items-center">
+                                                        Locked <LockClosedIcon className="h-4 w-4 ml-1" />
+                                                    </span>
+                                                ) : (
+                                                    <>
+                                                        <span className="text-sm font-medium mr-2 hidden sm:block">View Content</span>
+                                                        <ArrowRightIcon className="h-5 w-5" />
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
 
-                                        <div className={`flex items-center transition-all ${isLocked
-                                            ? 'text-gray-400'
-                                            : 'text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1'
-                                            }`}>
-                                            {isLocked ? (
-                                                <span className="text-sm font-medium flex items-center">
-                                                    Locked <LockClosedIcon className="h-4 w-4 ml-1" />
-                                                </span>
-                                            ) : (
-                                                <>
-                                                    <span className="text-sm font-medium mr-2 hidden sm:block">View Content</span>
-                                                    <ArrowRightIcon className="h-5 w-5" />
-                                                </>
-                                            )}
-                                        </div>
+                                        {/* Nested Assignments List */}
+                                        {!isLocked && module.assignments && module.assignments.length > 0 && (
+                                            <div className="mt-4 pl-4 border-l-2 border-indigo-100 space-y-2">
+                                                {module.assignments.map((assign: any, aIdx: number) => {
+                                                    const isCompleted = completedAssignmentIds.has(assign._id || assign);
+                                                    return (
+                                                        <div
+                                                            key={assign._id || aIdx}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate(`/assignments/${assign._id || assign}`);
+                                                            }}
+                                                            className="flex items-center justify-between p-3 rounded-lg bg-indigo-50/30 border border-indigo-50 hover:bg-indigo-50 transition-colors group/item"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <ClipboardDocumentCheckIcon className={`h-5 w-5 ${isCompleted ? 'text-green-500' : 'text-indigo-500'}`} />
+                                                                <div>
+                                                                    <p className="text-sm font-medium text-gray-800 group-hover/item:text-indigo-700">
+                                                                        {assign.title || 'Assignment'}
+                                                                    </p>
+                                                                    {assign.dueDate && (
+                                                                        <p className="text-[10px] text-gray-500">
+                                                                            Due: {new Date(assign.dueDate).toLocaleDateString()}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            {isCompleted ? (
+                                                                <span className="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded border border-green-200 uppercase">Completed</span>
+                                                            ) : (
+                                                                <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded border border-amber-200 uppercase">To Do</span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );

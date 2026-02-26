@@ -1,17 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  PhotoIcon
+  PhotoIcon,
+  TagIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import type { Course, CourseMaterial, Module } from '../../types';
 
 import BackButton from '../Common/BackButton';
+import { getAllCategories, saveCustomCategory } from '../../utils/categories';
 
 interface CourseFormData {
   title: string;
@@ -53,10 +55,43 @@ const EditCourse = () => {
 
 
 
-  const categories = [
-    'Computer Science', 'Mathematics', 'Physics', 'Chemistry',
-    'Biology', 'English', 'History', 'Arts', 'Business', 'Other'
-  ];
+  const [categoryList, setCategoryList] = useState(() => getAllCategories().map(c => c.label));
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [showLevelDropdown, setShowLevelDropdown] = useState(false);
+  const levelDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
+        setShowCategoryDropdown(false);
+      }
+      if (levelDropdownRef.current && !levelDropdownRef.current.contains(e.target as Node)) {
+        setShowLevelDropdown(false);
+      }
+    };
+    if (showCategoryDropdown || showLevelDropdown) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showCategoryDropdown, showLevelDropdown]);
+
+  const handleAddCategory = () => {
+    const trimmed = newCategoryInput.trim();
+    if (!trimmed) return;
+    if (categoryList.includes(trimmed)) {
+      toast.error('Category already exists');
+      return;
+    }
+    saveCustomCategory(trimmed);
+    const updated = getAllCategories().map(c => c.label);
+    setCategoryList(updated);
+    setFormData(prev => ({ ...prev, category: trimmed }));
+    setNewCategoryInput('');
+    setShowNewCategory(false);
+    toast.success(`Category "${trimmed}" created!`);
+  };
 
   useEffect(() => {
     fetchCourseDetails();
@@ -310,36 +345,127 @@ const EditCourse = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category *
               </label>
-              <select
-                name="category"
-                required
-                value={formData.category}
-                onChange={handleChange}
-                className="input"
-              >
-                <option value="">Select Category</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
+              <div ref={categoryDropdownRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryDropdown(o => !o)}
+                  className="input w-full flex items-center justify-between text-left gap-2"
+                >
+                  <span className={formData.category ? 'text-gray-900' : 'text-gray-400'}>
+                    {formData.category || 'Select Category'}
+                  </span>
+                  <svg
+                    className={`h-4 w-4 text-gray-400 flex-shrink-0 transition-transform duration-150 ${showCategoryDropdown ? 'rotate-180' : ''}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showCategoryDropdown && (
+                  <div className="absolute z-40 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                    <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                      <button
+                        type="button"
+                        onClick={() => { setFormData(p => ({ ...p, category: '' })); setShowCategoryDropdown(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${formData.category === '' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-500'}`}
+                      >
+                        Select Category
+                      </button>
+                      {categoryList.map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => { setFormData(p => ({ ...p, category: cat })); setShowCategoryDropdown(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors ${formData.category === cat ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-900'}`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <input type="hidden" name="category" value={formData.category} />
+
+              {!showNewCategory ? (
+                <button
+                  type="button"
+                  onClick={() => setShowNewCategory(true)}
+                  className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  <TagIcon className="h-3.5 w-3.5" />
+                  Create new category
+                </button>
+              ) : (
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={newCategoryInput}
+                    onChange={e => setNewCategoryInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } if (e.key === 'Escape') setShowNewCategory(false); }}
+                    className="input flex-1 text-sm py-1.5"
+                    placeholder="e.g. Robotics"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCategory}
+                    className="btn btn-primary btn-sm px-3 py-1.5 text-xs"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowNewCategory(false); setNewCategoryInput(''); }}
+                    className="btn btn-secondary btn-sm px-3 py-1.5 text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Level *
               </label>
-              <select
-                name="level"
-                required
-                value={formData.level}
-                onChange={handleChange}
-                className="input"
-              >
-                <option value="1st Year">1st Year</option>
-                <option value="2nd Year">2nd Year</option>
-                <option value="3rd Year">3rd Year</option>
-                <option value="4th Year">4th Year</option>
-              </select>
+              <div ref={levelDropdownRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowLevelDropdown(o => !o)}
+                  className="input w-full flex items-center justify-between text-left gap-2"
+                >
+                  <span className={formData.level ? 'text-gray-900' : 'text-gray-400'}>
+                    {formData.level || 'Select Level'}
+                  </span>
+                  <svg
+                    className={`h-4 w-4 text-gray-400 flex-shrink-0 transition-transform duration-150 ${showLevelDropdown ? 'rotate-180' : ''}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showLevelDropdown && (
+                  <div className="absolute z-40 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                    <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                      {['1st Year', '2nd Year', '3rd Year', '4th Year'].map(lvl => (
+                        <button
+                          key={lvl}
+                          type="button"
+                          onClick={() => {
+                            setFormData(p => ({ ...p, level: lvl as any }));
+                            setShowLevelDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors ${formData.level === lvl ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-900'}`}
+                        >
+                          {lvl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <input type="hidden" name="level" value={formData.level} />
             </div>
 
             <div>

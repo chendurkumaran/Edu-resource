@@ -9,8 +9,10 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { formatDate } from '../../utils/dateUtils';
 import type { Message, User } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 const Messages = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,13 +95,15 @@ const Messages = () => {
           <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
           <p className="mt-2 text-gray-600">Communicate with students and instructors</p>
         </div>
-        <button
-          onClick={() => setShowCompose(true)}
-          className="btn btn-primary flex items-center"
-        >
-          <PencilIcon className="h-5 w-5 mr-2" />
-          Compose
-        </button>
+        {user?.role !== 'student' && (
+          <button
+            onClick={() => setShowCompose(true)}
+            className="btn btn-primary flex items-center"
+          >
+            <PencilIcon className="h-5 w-5 mr-2" />
+            Compose
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -108,23 +112,25 @@ const Messages = () => {
           <button
             onClick={() => setActiveTab('inbox')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'inbox'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-primary-500 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <InboxIcon className="h-5 w-5 inline mr-2" />
             Inbox
           </button>
-          <button
-            onClick={() => setActiveTab('sent')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'sent'
+          {user?.role !== 'student' && (
+            <button
+              onClick={() => setActiveTab('sent')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'sent'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-          >
-            <PaperAirplaneIcon className="h-5 w-5 inline mr-2" />
-            Sent
-          </button>
+                }`}
+            >
+              <PaperAirplaneIcon className="h-5 w-5 inline mr-2" />
+              Sent
+            </button>
+          )}
         </nav>
       </div>
 
@@ -181,9 +187,14 @@ const Messages = () => {
 
       {/* Compose Modal */}
       {showCompose && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Compose Message</h3>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-auto relative">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Compose Message</h3>
+              <button onClick={() => setShowCompose(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
 
             <form onSubmit={handleSendMessage} className="space-y-4">
               <div>
@@ -247,11 +258,11 @@ const Messages = () => {
 
       {/* Message Detail Modal */}
       {selectedMessage && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">{selectedMessage.subject}</h3>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-2xl relative max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-start mb-6">
+              <div className="pr-8">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{selectedMessage.subject}</h3>
                 <p className="text-sm text-gray-600">
                   {activeTab === 'inbox' ? 'From' : 'To'}: {' '}
                   {activeTab === 'inbox'
@@ -271,14 +282,24 @@ const Messages = () => {
               </div>
               <button
                 onClick={() => setSelectedMessage(null)}
-                className="text-gray-400 hover:text-gray-600"
+                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
               >
-                ×
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
             </div>
 
-            <div className="border-t pt-4">
-              <p className="whitespace-pre-wrap text-gray-700">{selectedMessage.content}</p>
+            <div className="border-t border-gray-100 pt-6 mt-2 overflow-y-auto flex-1">
+              <div className="prose prose-sm sm:prose max-w-none text-gray-700 whitespace-pre-wrap">
+                {selectedMessage.content}
+              </div>
+            </div>
+            <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => setSelectedMessage(null)}
+                className="btn btn-secondary px-6"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

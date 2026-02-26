@@ -4,24 +4,24 @@ type DateInput = string | Date | number | null | undefined;
 
 export const formatDate = (date: DateInput, options: Intl.DateTimeFormatOptions = {}): string => {
   if (!date) return 'No date';
-  
+
   const dateObj = new Date(date);
   if (isNaN(dateObj.getTime())) return 'Invalid date';
-  
+
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric', // Always 4-digit year
     month: 'short',
     day: 'numeric'
   };
-  
-  return dateObj.toLocaleDateString('en-US', { ...defaultOptions, ...options });
+
+  return dateObj.toLocaleDateString('en-GB', { ...defaultOptions, ...options });
 };
 
 export const formatDateTime = (date: DateInput): string => {
   return formatDate(date, {
-    year: 'numeric', // Always 4-digit year
-    month: 'short',
-    day: 'numeric',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit'
   });
@@ -40,14 +40,14 @@ export const formatDateLong = (date: DateInput): string => {
 
 export const getTimeUntilDate = (targetDate: DateInput): string => {
   if (!targetDate) return 'No date';
-  
+
   const target = new Date(targetDate);
   if (isNaN(target.getTime())) return 'Invalid date';
-  
+
   const now = new Date();
   const diffTime = target.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays < 0) {
     return `${Math.abs(diffDays)} days overdue`;
   } else if (diffDays === 0) {
