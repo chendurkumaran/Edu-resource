@@ -49,8 +49,8 @@ const run = async () => {
 
 const createInstructorUser = async () => {
   // Check if instructor user already exists
-  const instructorEmail = 'chendur@gmail.com';
-  const instructorPassword = '12341234';
+  const instructorEmail = process.env.ADMIN_PASSWORD;
+  const instructorPassword = process.env.ADMIN_PASSWORD;
 
   let user = await User.findOne({ email: instructorEmail });
 
