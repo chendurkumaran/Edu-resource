@@ -38,11 +38,11 @@ app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
       'http://localhost:5173',
+      process.env.CLIENT_URL,
       'http://localhost:5174',
       'http://localhost:5175',
       'https://edu-resource-eta.vercel.app',
-      'https://edu-resource-ashen.vercel.app' // Explicitly allow production
-      process.env.CLIENT_URL
+      'https://edu-resource-ashen.vercel.app'
     ].filter(Boolean).map(url => url.replace(/\/$/, '')); // Remove trailing slashes
 
     if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
