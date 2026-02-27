@@ -10,14 +10,11 @@ import {
   CheckCircleIcon,
   StarIcon,
   ArrowRightIcon,
-  ShieldCheckIcon,
   DevicePhoneMobileIcon,
   CloudIcon,
   ChatBubbleLeftRightIcon,
-  DocumentCheckIcon,
   BellIcon,
-  LockClosedIcon,
-  PlayIcon
+  LockClosedIcon
 } from '@heroicons/react/24/outline';
 import type { PlatformStats } from '../../types';
 
@@ -381,7 +378,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      
+
 
       {/* Testimonials Section */}
       <section id="testimonials" className="py-20 bg-white">
