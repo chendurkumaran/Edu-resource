@@ -40,7 +40,8 @@ app.use(cors({
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:5175',
-      'https://edu-resource-eta.vercel.app', // Explicitly allow production
+      'https://edu-resource-eta.vercel.app',
+      'https://edu-resource-ashen.vercel.app' // Explicitly allow production
       process.env.CLIENT_URL
     ].filter(Boolean).map(url => url.replace(/\/$/, '')); // Remove trailing slashes
 
